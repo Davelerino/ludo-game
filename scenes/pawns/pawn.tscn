@@ -1,9 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://pawnsceenludo3d"]
+[gd_scene format=3 uid="uid://bdayktp1v054b"]
 
-[ext_resource type="Script" path="res://scripts/core/pawn_controller.gd" id="1_pc"]
+[ext_resource type="Script" uid="uid://b45i4p6aq8gtp" path="res://scripts/core/pawn_controller.gd" id="1_pc"]
 
-[node name="PawnContainer" type="Node3D"]
+[node name="PawnContainer" type="Node3D" unique_id=1239675657]
 script = ExtResource("1_pc")
 
-[node name="PlaceholderPawn" type="Marker3D" parent="."]
-description = "Pion placeholder (Marker3D). Sera remplacé par un MeshInstance3D quand les assets 3D seront prêts (GDD §11.5)."
+[node name="PlaceholderPawn" type="Marker3D" parent="." unique_id=1990159450]

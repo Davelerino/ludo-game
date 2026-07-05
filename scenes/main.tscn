@@ -1,41 +1,37 @@
-[gd_scene load_steps=10 format=3 uid="uid://mainsceenludo3d"]
+[gd_scene format=3 uid="uid://bnt32ov0q7qvb"]
 
-[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/board/board_root.tscn" id="2_board"]
-[ext_resource type="Script" path="res://scripts/core/camera_rig.gd" id="3_cam"]
-[ext_resource type="Script" path="res://scripts/core/audio_manager.gd" id="4_audio"]
-[ext_resource type="PackedScene" path="res://scenes/ui/ui_manager.tscn" id="5_ui"]
-[ext_resource type="Script" path="res://scripts/core/board_manager.gd" id="6_bm"]
-[ext_resource type="Script" path="res://scripts/core/pawn_controller.gd" id="7_pc"]
-[ext_resource type="Script" path="res://scripts/core/dice_system.gd" id="8_dice"]
-[ext_resource type="Resource" path="res://resources/BoardConfig.tres" id="9_cfg"]
+[ext_resource type="Script" uid="uid://d36gao6ouhlhw" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://bq7iquxbi1dbn" path="res://scenes/board/board_root.tscn" id="2_board"]
+[ext_resource type="Script" uid="uid://djxlomrsf4pym" path="res://scripts/core/camera_rig.gd" id="3_cam"]
+[ext_resource type="Script" uid="uid://ds8lv4pyhiqpe" path="res://scripts/core/audio_manager.gd" id="4_audio"]
+[ext_resource type="PackedScene" uid="uid://b2inml6b5x6o2" path="res://scenes/ui/ui_manager.tscn" id="5_ui"]
+[ext_resource type="Script" uid="uid://bdv034sw4puqs" path="res://scripts/core/board_manager.gd" id="6_bm"]
+[ext_resource type="Script" uid="uid://b45i4p6aq8gtp" path="res://scripts/core/pawn_controller.gd" id="7_pc"]
+[ext_resource type="Script" uid="uid://sjx8y1q31i7e" path="res://scripts/core/dice_system.gd" id="8_dice"]
+[ext_resource type="Resource" uid="uid://rbio3kc8gxrn" path="res://resources/BoardConfig.tres" id="9_cfg"]
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=528590329]
 script = ExtResource("1_main")
 
-[node name="BoardRoot" parent="." instance=ExtResource("2_board")]
+[node name="BoardRoot" parent="." unique_id=1041812861 instance=ExtResource("2_board")]
 
-[node name="CameraRig" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+[node name="CameraRig" type="Node3D" parent="." unique_id=229596424]
 script = ExtResource("3_cam")
-target = NodePath("../BoardRoot")
-default_distance = 14.0
 
-[node name="AudioManager" type="Node" parent="."]
+[node name="AudioManager" type="Node" parent="." unique_id=296689920]
 script = ExtResource("4_audio")
 
-[node name="UIManager" parent="." instance=ExtResource("5_ui")]
+[node name="UIManager" parent="." unique_id=1899366411 instance=ExtResource("5_ui")]
 
-[node name="GameRoot" type="Node" parent="."]
-description = "Conteneur des managers de logique (GDD §11.5). TurnManager est un autoload singleton accessible globalement ; on le référence aussi ici pour le câblage."
+[node name="GameRoot" type="Node" parent="." unique_id=518267618]
 
-[node name="BoardManager" type="Node" parent="GameRoot"]
+[node name="BoardManager" type="Node" parent="GameRoot" unique_id=226441970]
 script = ExtResource("6_bm")
 config = ExtResource("9_cfg")
 
-[node name="PawnController" type="Node" parent="GameRoot"]
+[node name="PawnController" type="Node" parent="GameRoot" unique_id=1111400518]
 script = ExtResource("7_pc")
 board_manager = NodePath("../BoardManager")
 
-[node name="DiceSystem" type="Node" parent="GameRoot"]
+[node name="DiceSystem" type="Node" parent="GameRoot" unique_id=1798746037]
 script = ExtResource("8_dice")
