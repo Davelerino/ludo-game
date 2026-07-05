@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="BoardConfig" load_steps=2 format=3 uid="uid://bconfig001ludo3d"]
+
+[ext_resource type="Script" path="res://scripts/core/board_config.gd" id="1_bcfg"]
+
+[resource]
+script = ExtResource("1_bcfg")

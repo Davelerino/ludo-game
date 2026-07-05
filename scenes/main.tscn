@@ -1,0 +1,41 @@
+[gd_scene load_steps=10 format=3 uid="uid://mainsceenludo3d"]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/board/board_root.tscn" id="2_board"]
+[ext_resource type="Script" path="res://scripts/core/camera_rig.gd" id="3_cam"]
+[ext_resource type="Script" path="res://scripts/core/audio_manager.gd" id="4_audio"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_manager.tscn" id="5_ui"]
+[ext_resource type="Script" path="res://scripts/core/board_manager.gd" id="6_bm"]
+[ext_resource type="Script" path="res://scripts/core/pawn_controller.gd" id="7_pc"]
+[ext_resource type="Script" path="res://scripts/core/dice_system.gd" id="8_dice"]
+[ext_resource type="Resource" path="res://resources/BoardConfig.tres" id="9_cfg"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="BoardRoot" parent="." instance=ExtResource("2_board")]
+
+[node name="CameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("3_cam")
+target = NodePath("../BoardRoot")
+default_distance = 14.0
+
+[node name="AudioManager" type="Node" parent="."]
+script = ExtResource("4_audio")
+
+[node name="UIManager" parent="." instance=ExtResource("5_ui")]
+
+[node name="GameRoot" type="Node" parent="."]
+description = "Conteneur des managers de logique (GDD §11.5). TurnManager est un autoload singleton accessible globalement ; on le référence aussi ici pour le câblage."
+
+[node name="BoardManager" type="Node" parent="GameRoot"]
+script = ExtResource("6_bm")
+config = ExtResource("9_cfg")
+
+[node name="PawnController" type="Node" parent="GameRoot"]
+script = ExtResource("7_pc")
+board_manager = NodePath("../BoardManager")
+
+[node name="DiceSystem" type="Node" parent="GameRoot"]
+script = ExtResource("8_dice")

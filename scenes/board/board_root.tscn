@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bq7iquxbi1dbn"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_c2vkp"]
+
+[node name="BoardRoot" type="Node3D" unique_id=1237762606]
+
+[node name="GridMap" type="GridMap" parent="." unique_id=415979976]
+cell_size = Vector3(1, 1, 1)
+
+[node name="RingDecor" type="Node3D" parent="." unique_id=1571356788]
+
+[node name="PawnContainer" type="Node3D" parent="." unique_id=842168198]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1915056806]
+mesh = SubResource("BoxMesh_c2vkp")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=13569127]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9015784, 2.574664, 3.789067)
+light_energy = 8.921
+omni_range = 6.281766

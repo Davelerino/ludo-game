@@ -1,0 +1,10 @@
+# Godot 4 — cache et fichiers générés
+/.godot/
+/imported/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeur
+*.swp
