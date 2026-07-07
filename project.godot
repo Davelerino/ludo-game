@@ -26,6 +26,10 @@ TurnManager="*res://scripts/managers/turn_manager.gd"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/ludo_board_generator/plugin.cfg", "res://addons/ludo_board_tools/plugin.cfg")
+
 [input]
 
 pawn_select={

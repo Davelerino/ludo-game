@@ -1,52 +1,45 @@
 class_name BoardManager
 extends Node
 ## ============================================================================
-## BoardManager — Génère et expose la géométrie du plateau (GDD §3, §11.1).
+## BoardManager — Couche logique du plateau (GDD §3, §11.1).
 ##
-## RESPONSABILITÉS (§11.1)
-##   - Construire le plateau procéduralement dans une GridMap (ring de 52 cases,
-##     4 home lanes de 6 cases, 4 yards) à partir d'un BoardConfig.
-##   - Traduire un pion logique (Dictionary) en coordonnées de cellule GridMap
-##     (Vector3i) puis en position monde (Vector3) pour le PawnController.
-##   - Maintenir la liste `all_pawns` (source de vérité d'état) et fournir des
-##     accesseurs (get_pawn_by_id, pawns_of, ...) utilisés par les vues.
-##   - NE PAS valider de règles : tout passe par RuleEngine. BoardManager ne
-##     fait que porter l'état + la géométrie.
+## RESPONSABILITÉS (§11.1) — PURE LOGIQUE, NE GÉNÈRE RIEN
+##   - Porter l'état des pions (all_pawns, source de vérité du RuleEngine).
+##   - Bridge pion logique (Dictionary) ↔ cellule 3D (Vector3i) ↔ monde (Vector3).
+##   - NE PAS construire le plateau : la géométrie est CUIT dans board_root.tscn
+##     par le plugin "Ludo Board Tools" (Tools > Generate Ludo Board), puis Ctrl+S.
+##     Au runtime, la GridMap a déjà ses cellules — BoardManager ne fait que lire.
+##
+## WORKFLOW (philosophie A : plugin cuit)
+##   1. Éditeur : ouvrir board_root.tscn
+##   2. Tools > Generate Ludo Board  (plugin peuple la GridMap)
+##   3. Ctrl+S                        (cuit les cellules dans la scène)
+##   4. Runtime : main.tscn instancie board_root.tscn → GridMap déjà pleine
 ##
 ## DÉPENDANCES
 ##   - BoardConfig (constantes + fabriques de pions).
-##   - RuleEngine (uniquement pour les conversions get_ring_index /
-##     get_home_lane_index : ce sont des fonctions pures de positionnement).
-##   - Une GridMap enfant (assignée dans board_root.tscn).
-##
-## NOTE : c'est un SQUELETTE. La géométrie réelle (MeshLibrary, offsets par
-## joueur, élévations) sera branchée quand les assets seront prêts. Les
-## signatures publiques (setup, cell_of, cell_world_position, get_pawn_by_id)
-## sont définitives pour ne pas casser TurnManager/PawnController.
+##   - BoardGenerator (UNIQUEMENT pour les lookup ring_index→cell, home_lane→cell,
+##     yard→cell : table d'adressage partagée avec le plugin. PAS de populate()).
+##   - RuleEngine (conversions get_ring_index / get_home_lane_index).
+##   - Une GridMap déjà peuplée (assignée dans board_root.tscn).
 ## ============================================================================
 
 const PawnState := BoardConfig.PawnState
 
 @export var config: BoardConfig
-## La GridMap peuplée par build_board(). Rattachée dans board_root.tscn.
+## GridMap peuplée par le plugin éditeur (pas par ce script au runtime).
 var grid_map: GridMap
 
 ## Source de vérité d'état (les mêmes Dictionaries que ceux du RuleEngine).
 var all_pawns: Array = []
 
-# --- offsets 3D par joueur (placeholder : disposition en croix centrée) ------
-# En attendant les vrais assets, on calcule des positions déduites de l'index
-# de ring / home lane pour que le PawnController ait des coordonnées cohérentes.
-const CELL_SIZE: float = 1.0
-const RING_RADIUS: float = 8.0  # rayon du cercle du ring (placeholder)
 
-
-## Initialise les pions (4 par joueur, état MAISON) et construit le plateau.
+## Initialise les pions (4 par joueur, état MAISON) et assigne les dépendances.
+## NE génère PAS le plateau — voir validate_board() pour le contrôle.
 func setup(p_config: BoardConfig, p_grid_map: GridMap) -> void:
 	config = p_config
 	grid_map = p_grid_map
 	_init_pawns()
-	build_board()
 
 
 func _init_pawns() -> void:
@@ -57,31 +50,41 @@ func _init_pawns() -> void:
 		)
 
 
-## Construit la GridMap (ring + home lanes + yards). SQUELETTE : à compléter
-## avec une MeshLibrary et la logique de placement par joueur (§3.1/§3.2).
-func build_board() -> void:
+## Vérifie que la GridMap a bien été cuite par le plugin éditeur.
+## Log un warning clair si ce n'est pas le cas (aide au debug — rappelle le
+## workflow Tools > Generate Ludo Board puis Ctrl+S).
+## Retourne true si le plateau est présent, false sinon.
+func validate_board() -> bool:
 	if grid_map == null:
-		push_warning("BoardManager: aucune GridMap assignée, plateau non construit.")
-		return
-	# TODO §3 : peupler grid_map avec les cellules du ring, des home lanes et
-	# des yards en utilisant config.RING_SIZE / HOME_LANE_LENGTH / PLAYER_COUNT
-	# et RuleEngine.get_start_tile_index() / get_home_entry_ring_index().
-	pass
+		push_warning("BoardManager: aucune GridMap assignée.")
+		return false
+	if grid_map.get_used_cells().is_empty():
+		push_warning(String(" ").join([
+			"BoardManager: la GridMap est VIDE au runtime.",
+			"Le plateau n'a pas été cuit par le plugin éditeur.",
+			"Workflow : ouvrir board_root.tscn → Tools > Generate Ludo Board → Ctrl+S."
+		]))
+		return false
+	return true
 
 
 # ----------------------------------------------------------------------------
-# Géométrie : pion -> cellule / position monde
+# Géométrie : pion -> cellule / position monde (lecture seule, pas de génération)
 # ----------------------------------------------------------------------------
 
 ## Coordonnée de cellule GridMap (Vector3i) d'un pion selon son état logique.
+## Utilise la lookup table de BoardGenerator (mêmes cellules que celles cuites
+## par le plugin) — pure adresse, aucune écriture sur la GridMap.
 func cell_of(pawn: Dictionary) -> Vector3i:
 	match pawn.state:
 		PawnState.MAISON:
 			return _yard_cell(pawn)
 		PawnState.RING:
-			return _ring_cell(RuleEngine.get_ring_index(pawn))
-		PawnState.HOME_LANE, PawnState.FINI:
-			return _home_lane_cell(pawn.player, RuleEngine.get_home_lane_index(pawn))
+			return BoardGenerator.ring_index_to_cell(RuleEngine.get_ring_index(pawn))
+		PawnState.HOME_LANE:
+			return BoardGenerator.home_lane_cell(pawn.player, RuleEngine.get_home_lane_index(pawn))
+		PawnState.FINI:
+			return BoardGenerator.center_cell()
 	return Vector3i.ZERO
 
 
@@ -89,8 +92,9 @@ func cell_of(pawn: Dictionary) -> Vector3i:
 func cell_world_position(pawn: Dictionary) -> Vector3:
 	if grid_map != null:
 		return grid_map.map_to_local(cell_of(pawn))
-	# Fallback placeholder si la GridMap n'existe pas encore.
-	return _placeholder_world_position(pawn)
+	# Fallback si la GridMap n'existe pas (dev only).
+	var c: Vector3i = cell_of(pawn)
+	return Vector3(c.x, 0, c.z)
 
 
 # ----------------------------------------------------------------------------
@@ -115,34 +119,11 @@ func reset_all_to_yard() -> void:
 
 
 # ----------------------------------------------------------------------------
-# Internes de géométrie (placeholders cohérents avec un plateau carré)
+# Internes
 # ----------------------------------------------------------------------------
 
-func _ring_cell(ring_index: int) -> Vector3i:
-	# Placeholder : l'index de ring est mappé sur un cercle d'élévation z=0.
-	# La vraie forme (croix Ludo) viendra avec la MeshLibrary.
-	var angle: float = (float(ring_index) / float(BoardConfig.RING_SIZE)) * TAU
-	return Vector3i(round(cos(angle) * RING_RADIUS), 0, round(sin(angle) * RING_RADIUS))
-
-
-func _home_lane_cell(player_id: int, local_index: int) -> Vector3i:
-	# Placeholder : home lane = segment radial vers le centre.
-	var angle: float = (float(player_id) / float(BoardConfig.PLAYER_COUNT)) * TAU
-	var r: float = RING_RADIUS - float(local_index + 1) * CELL_SIZE
-	return Vector3i(round(cos(angle) * r), 0, round(sin(angle) * r))
-
-
+## Cellule de yard pour un pion. Chaque joueur a 4 positions 2×2 ; on assigne
+## le slot par l'index local du pion dans son équipe (0..3).
 func _yard_cell(pawn: Dictionary) -> Vector3i:
-	# Placeholder : yards dans les coins, offset par pion du joueur.
-	var base_angle: float = (float(pawn.player) / float(BoardConfig.PLAYER_COUNT)) * TAU
-	var r: float = RING_RADIUS + 2.0 * CELL_SIZE
-	return Vector3i(
-		round(cos(base_angle) * r) + (pawn.id % 2),
-		0,
-		round(sin(base_angle) * r) + (pawn.id / 2)
-	)
-
-
-func _placeholder_world_position(pawn: Dictionary) -> Vector3:
-	var c: Vector3i = cell_of(pawn)
-	return Vector3(c) * CELL_SIZE
+	var slot: int = pawn.id % BoardConfig.PAWNS_PER_PLAYER
+	return BoardGenerator.yard_cell(pawn.player, slot)

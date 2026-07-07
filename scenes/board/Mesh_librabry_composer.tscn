@@ -1,0 +1,75 @@
+[gd_scene format=4 uid="uid://cygleuyxu20ra"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ksr0j"]
+resource_name = "Neutral"
+cull_mode = 2
+albedo_color = Color(0.9063318, 0.9063318, 0.9063318, 1)
+roughness = 0.5
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_x3o6s"]
+_surfaces = [{
+"aabb": AABB(-0.099999994, -0.039999995, -0.099999994, 0.19999999, 0.039999995, 0.19999999),
+"format": 34896613377,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAAADAAEABAACAAEAAwAEAAEABQAAAAIAAwAAAAUABAAGAAIABQACAAYAAwAHAAQAAwAFAAcABwAGAAQABwAFAAYA"),
+"name": "Neutral",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 8,
+"vertex_data": PackedByteArray("AAAAAP//AAAAAP//AAAAAAAA/////wAAAAAAAAAAAAD/////AAAAAP//AAD//wAA////////AAD//wAAAAAAAA==")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_xvu17"]
+resource_name = "SM_Ludo_SimplePath_Cube_004"
+_surfaces = [{
+"aabb": AABB(-0.099999994, -0.039999995, -0.099999994, 0.19999999, 0.039999995, 0.19999999),
+"attribute_data": PackedByteArray("/1////+f/7//n////1//v/9f/7//n/9//5//v/9f/3//X/9//5//P/+f/3//X/8//1//P/+fAAD/n/8//18AAP8f/3//X/8//1//f/8f/z//n/9//9//P//f/3//n/8/"),
+"format": 34896613399,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAAADAAEABAAFAAYABAAHAAUACAAJAAoACAALAAkADAANAA4ADAAPAA0AEAARABIAEAATABEAFAAVABYAFAAXABUA"),
+"material": SubResource("StandardMaterial3D_ksr0j"),
+"name": "Neutral",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("AAAAAP//VNUAAP//AABU1QAA/////1TVAAAAAAAAVNUAAAAAAAD///////8AAP//AAD//wAA/////wAAAAD/////AAAAAFTV////////VNX/////AABU1f//AAD//1TV//8AAP///78AAP//////v/////////+/AAAAAP///78AAAAAAAD/v///AAD///+///8AAAAA/78AAAAA////v/////8AAP//AAD///////8AAP//AAD/////////////VNVU1VTVVNVU1VTVVNVU1f+//7//v/+//7//v/+//7+qKqoqqiqqKqoqqiqqKqoq/////////////////////wAA/38AAP9/AAD/fwAA/3//f/+//3//v/9//7//f/+/")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_x3o6s")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eng0k"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xsfsh"]
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w7md4"]
+albedo_color = Color(0, 1, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mlbkq"]
+albedo_color = Color(0, 0.16746251, 1.2742168, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wvkt7"]
+albedo_color = Color(1.2742168, 1.2742168, 0, 1)
+
+[node name="Node3D" type="Node3D" unique_id=1569268999]
+
+[node name="SM_Ludo_SimplePath" type="MeshInstance3D" parent="." unique_id=1707804107]
+mesh = SubResource("ArrayMesh_xvu17")
+surface_material_override/0 = SubResource("StandardMaterial3D_eng0k")
+
+[node name="SM_Ludo_RedTile" type="MeshInstance3D" parent="." unique_id=1741167435]
+mesh = SubResource("ArrayMesh_xvu17")
+surface_material_override/0 = SubResource("StandardMaterial3D_xsfsh")
+
+[node name="SM_Ludo_GreenTile" type="MeshInstance3D" parent="." unique_id=1256116942]
+mesh = SubResource("ArrayMesh_xvu17")
+surface_material_override/0 = SubResource("StandardMaterial3D_w7md4")
+
+[node name="SM_Ludo_BlueTile" type="MeshInstance3D" parent="." unique_id=2002955595]
+mesh = SubResource("ArrayMesh_xvu17")
+surface_material_override/0 = SubResource("StandardMaterial3D_mlbkq")
+
+[node name="SM_Ludo_YellowTile" type="MeshInstance3D" parent="." unique_id=2016636017]
+mesh = SubResource("ArrayMesh_xvu17")
+surface_material_override/0 = SubResource("StandardMaterial3D_wvkt7")

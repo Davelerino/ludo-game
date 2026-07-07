@@ -1,20 +1,37 @@
 [gd_scene format=3 uid="uid://bq7iquxbi1dbn"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_c2vkp"]
+[ext_resource type="MeshLibrary" uid="uid://diqdwcvhuuasl" path="res://resources/LudoMeshLibrary_02.tres" id="1_dwwww"]
+[ext_resource type="Script" uid="uid://bhvqm1v8hd1vq" path="res://addons/ludo_board_generator/board_generator.gd" id="2_6lb0e"]
+[ext_resource type="Script" uid="uid://c08hhiu1d8tsf" path="res://addons/ludo_board_generator/resources/mesh_mapping.gd" id="3_dwwww"]
+
+[sub_resource type="Resource" id="Resource_205rb"]
+script = ExtResource("3_dwwww")
+ring_mesh_id = 3
+start_red_mesh_id = 2
+start_blue_mesh_id = 0
+start_green_mesh_id = 1
+home_red_mesh_id = 2
+home_blue_mesh_id = 0
+home_green_mesh_id = 1
+home_yellow_mesh_id = 4
+center_mesh_id = 3
+metadata/_custom_type_script = "uid://c08hhiu1d8tsf"
 
 [node name="BoardRoot" type="Node3D" unique_id=1237762606]
 
 [node name="GridMap" type="GridMap" parent="." unique_id=415979976]
-cell_size = Vector3(1, 1, 1)
+mesh_library = ExtResource("1_dwwww")
+cell_size = Vector3(0.2, 0.2, 0.2)
+cell_center_y = false
+script = ExtResource("2_6lb0e")
+mesh_mapping = SubResource("Resource_205rb")
+grid_map_path = NodePath(".")
 
 [node name="RingDecor" type="Node3D" parent="." unique_id=1571356788]
 
 [node name="PawnContainer" type="Node3D" parent="." unique_id=842168198]
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1915056806]
-mesh = SubResource("BoxMesh_c2vkp")
-
 [node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=13569127]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9015784, 2.574664, 3.789067)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5453119, 6.947077, 0.91634583)
 light_energy = 8.921
-omni_range = 6.281766
+omni_range = 12.921703

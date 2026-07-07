@@ -25,21 +25,26 @@ extends Node3D
 
 
 func _ready() -> void:
-	# 1. Construit le plateau à partir du BoardConfig (ressource par défaut).
+	# 1. Initialise le BoardManager (état des pions + dépendances).
+	#    NOTE : le plateau n'est PAS généré ici — il est cuit dans board_root.tscn
+	#    par le plugin "Ludo Board Tools" (Tools > Generate Ludo Board → Ctrl+S).
 	var cfg: BoardConfig = load("res://resources/BoardConfig.tres")
 	board_manager.setup(cfg, board_root.get_node("GridMap"))
 
-	# 2. Instancie les pions visuels.
+	# 2. Vérifie que le plateau a bien été cuit (warning si vide, pas fatal).
+	board_manager.validate_board()
+
+	# 3. Instancie les pions visuels.
 	pawn_controller.board_manager = board_manager
 	pawn_controller.setup(board_manager.all_pawns)
 
-	# 3. Branche le TurnManager (autoload singleton) avec ses dépendances.
+	# 4. Branche le TurnManager (autoload singleton) avec ses dépendances.
 	TurnManager.setup(dice_system, board_manager, pawn_controller)
 
-	# 4. Démarre la première partie.
+	# 5. Démarre la première partie.
 	TurnManager.start_new_game()
 
-	# 5. Injecte le TurnManager dans la DiceView (pour le bouton "Lancer").
+	# 6. Injecte le TurnManager dans la DiceView (pour le bouton "Lancer").
 	var dice_view: DiceView = ui_manager.get_node_or_null("DiceView")
 	if dice_view:
 		dice_view.turn_manager = TurnManager
