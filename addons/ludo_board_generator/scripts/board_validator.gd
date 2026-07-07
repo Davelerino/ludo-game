@@ -8,10 +8,31 @@ extends RefCounted
 
 static func validate_all(data: LudoBoardData) -> Dictionary:
 	var errors: Array[String] = []
+	errors.append_array(validate_no_duplicate_positions(data))
 	errors.append_array(validate_ring(data))
 	errors.append_array(validate_start_tiles(data))
 	errors.append_array(validate_home_lanes(data))
 	return {"valid": errors.is_empty(), "errors": errors}
+
+
+## Explicit, global "no duplicate position" check across EVERY generated
+## cell (ring AND home lanes together) - independent from the ring/home
+## lane checks below, which only catch overlaps within their own scope.
+static func validate_no_duplicate_positions(data: LudoBoardData) -> Array[String]:
+	var errors: Array[String] = []
+	var seen: Dictionary = {}
+	for cell in data.cells:
+		if seen.has(cell.position):
+			var other: LudoCell = seen[cell.position]
+			errors.append(
+				"Duplicate grid position %s used by cell id %d (%s) and cell id %d (%s)." % [
+					cell.position, other.id, LudoBoardEnums.cell_type_name(other.type),
+					cell.id, LudoBoardEnums.cell_type_name(cell.type)
+				]
+			)
+		else:
+			seen[cell.position] = cell
+	return errors
 
 
 static func validate_ring(data: LudoBoardData) -> Array[String]:

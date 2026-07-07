@@ -33,7 +33,7 @@ func _ready() -> void:
 	# Example straight from GDD §4.1: resolve a pawn's world position from
 	# its color and its `progress` counter, with zero GridMap involved.
 	var example_color := LudoBoardEnums.PlayerColor.RED
-	for progress in [0, 5, 50, 51, 55, 56]:
+	for progress in [0, 5, 50, 51, 54, 55]:
 		var pos := data.resolve_position(example_color, progress)
 		print("RED pawn at progress=%d -> position %s" % [progress, pos])
 

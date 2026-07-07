@@ -9,7 +9,7 @@ class_name LudoBoardData
 extends Resource
 
 @export var ring_lane_length: int = 52
-@export var home_lane_length: int = 6
+@export var home_lane_length: int = 5
 
 ## All generated cells (ring + start + home + center), indexed by LudoCell.id.
 @export var cells: Array[LudoCell] = []
