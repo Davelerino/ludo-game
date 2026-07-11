@@ -6,14 +6,14 @@ extends Node
 ## LudoBoardData resource, exactly the separation the spec requires.
 ##
 ## Usage: attach to any Node in a test scene, run the scene, read the Output
-## panel. Generate a board with the plugin dock first so the .tres exists.
+## panel. Detect a board with the plugin dock first so the .tres exists.
 
 @export_file("*.tres") var board_data_path: String = "res://addons/ludo_board_generator/generated/board_data.tres"
 
 
 func _ready() -> void:
 	if not ResourceLoader.exists(board_data_path):
-		push_error("No BoardData found at %s. Generate a board first using the plugin dock." % board_data_path)
+		push_error("No BoardData found at %s. Paint your path in the GridMap and click 'Detect Board From GridMap' first." % board_data_path)
 		return
 
 	var data: LudoBoardData = load(board_data_path)

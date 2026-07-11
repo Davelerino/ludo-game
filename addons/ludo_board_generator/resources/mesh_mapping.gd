@@ -60,3 +60,37 @@ func mesh_id_for_home(color: int) -> int:
 			return home_yellow_mesh_id
 		_:
 			return ring_mesh_id
+
+
+## Reverse of mesh_id_for_start()/mesh_id_for_home()/ring_mesh_id: classifies
+## a MeshLibrary item id back into a logical cell type/color. Returns
+## {"type": LudoBoardEnums.CellType, "color": LudoBoardEnums.PlayerColor} or
+## an empty Dictionary if the id isn't part of the logical board (e.g. a
+## purely decorative mesh) - such cells are silently ignored by
+## LudoBoardDetector. Used to read back a hand-painted GridMap.
+##
+## Note: center_mesh_id is intentionally NOT classified here. The detector
+## determines each colour's centre/finish cell by its POSITION in the
+## reconstructed home-lane chain (the far end, opposite the ring), not by a
+## dedicated mesh id - paint the whole home lane, including its last cell,
+## with that colour's HOME mesh.
+func classify(mesh_id: int) -> Dictionary:
+	if mesh_id == ring_mesh_id:
+		return {"type": LudoBoardEnums.CellType.RING, "color": LudoBoardEnums.PlayerColor.NONE}
+	if mesh_id == start_red_mesh_id:
+		return {"type": LudoBoardEnums.CellType.START, "color": LudoBoardEnums.PlayerColor.RED}
+	if mesh_id == start_blue_mesh_id:
+		return {"type": LudoBoardEnums.CellType.START, "color": LudoBoardEnums.PlayerColor.BLUE}
+	if mesh_id == start_green_mesh_id:
+		return {"type": LudoBoardEnums.CellType.START, "color": LudoBoardEnums.PlayerColor.GREEN}
+	if mesh_id == start_yellow_mesh_id:
+		return {"type": LudoBoardEnums.CellType.START, "color": LudoBoardEnums.PlayerColor.YELLOW}
+	if mesh_id == home_red_mesh_id:
+		return {"type": LudoBoardEnums.CellType.HOME, "color": LudoBoardEnums.PlayerColor.RED}
+	if mesh_id == home_blue_mesh_id:
+		return {"type": LudoBoardEnums.CellType.HOME, "color": LudoBoardEnums.PlayerColor.BLUE}
+	if mesh_id == home_green_mesh_id:
+		return {"type": LudoBoardEnums.CellType.HOME, "color": LudoBoardEnums.PlayerColor.GREEN}
+	if mesh_id == home_yellow_mesh_id:
+		return {"type": LudoBoardEnums.CellType.HOME, "color": LudoBoardEnums.PlayerColor.YELLOW}
+	return {}
