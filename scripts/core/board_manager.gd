@@ -18,15 +18,19 @@ extends Node
 ##
 ## DÉPENDANCES
 ##   - BoardConfig (constantes + fabriques de pions).
-##   - BoardGenerator (UNIQUEMENT pour les lookup ring_index→cell, home_lane→cell,
-##     yard→cell : table d'adressage partagée avec le plugin. PAS de populate()).
-##   - RuleEngine (conversions get_ring_index / get_home_lane_index).
+##   - LudoBoardLayout (addons/ludo_path_system) : géométrie du plateau par
+##     segments (anneau + couloirs finaux + yards). Remplace l'ancien
+##     BoardGenerator à tableaux codés en dur.
+##   - RuleEngine : aucune dépendance géométrique, seulement pawn.progress
+##     (entier), traduit en Vector2i par LudoPlayerPath.get_position().
 ##   - Une GridMap déjà peuplée (assignée dans board_root.tscn).
 ## ============================================================================
 
 const PawnState := BoardConfig.PawnState
 
 @export var config: BoardConfig
+## Géométrie du plateau (anneau + couloirs finaux + yards), voir LudoBoardLayout.
+@export var layout: LudoBoardLayout
 ## GridMap peuplée par le plugin éditeur (pas par ce script au runtime).
 var grid_map: GridMap
 
@@ -36,9 +40,12 @@ var all_pawns: Array = []
 
 ## Initialise les pions (4 par joueur, état MAISON) et assigne les dépendances.
 ## NE génère PAS le plateau — voir validate_board() pour le contrôle.
-func setup(p_config: BoardConfig, p_grid_map: GridMap) -> void:
+func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout) -> void:
 	config = p_config
 	grid_map = p_grid_map
+	layout = p_layout
+	if layout != null:
+		layout.rewire()
 	_init_pawns()
 
 
@@ -50,11 +57,18 @@ func _init_pawns() -> void:
 		)
 
 
-## Vérifie que la GridMap a bien été cuite par le plugin éditeur.
-## Log un warning clair si ce n'est pas le cas (aide au debug — rappelle le
-## workflow Tools > Generate Ludo Board puis Ctrl+S).
+## Vérifie que le layout est cohérent et que la GridMap a bien été cuite par
+## le plugin éditeur. Log un warning clair si ce n'est pas le cas (aide au
+## debug — rappelle le workflow Tools > Generate Ludo Board puis Ctrl+S).
 ## Retourne true si le plateau est présent, false sinon.
 func validate_board() -> bool:
+	if layout == null:
+		push_warning("BoardManager: aucun LudoBoardLayout assigné.")
+		return false
+	var layout_errors: Array[String] = layout.validate()
+	if not layout_errors.is_empty():
+		push_warning("BoardManager: LudoBoardLayout invalide :\n - %s" % "\n - ".join(layout_errors))
+		return false
 	if grid_map == null:
 		push_warning("BoardManager: aucune GridMap assignée.")
 		return false
@@ -73,18 +87,19 @@ func validate_board() -> bool:
 # ----------------------------------------------------------------------------
 
 ## Coordonnée de cellule GridMap (Vector3i) d'un pion selon son état logique.
-## Utilise la lookup table de BoardGenerator (mêmes cellules que celles cuites
-## par le plugin) — pure adresse, aucune écriture sur la GridMap.
+## RING/HOME_LANE passent par LudoPlayerPath.get_position(pawn.progress), qui
+## gère lui-même le bouclage sur l'anneau et l'embranchement vers le couloir
+## final — BoardManager ne fait ici que convertir Vector2i -> Vector3i.
 func cell_of(pawn: Dictionary) -> Vector3i:
 	match pawn.state:
 		PawnState.MAISON:
 			return _yard_cell(pawn)
-		PawnState.RING:
-			return BoardGenerator.ring_index_to_cell(RuleEngine.get_ring_index(pawn))
-		PawnState.HOME_LANE:
-			return BoardGenerator.home_lane_cell(pawn.player, RuleEngine.get_home_lane_index(pawn))
+		PawnState.RING, PawnState.HOME_LANE:
+			var cell: Vector2i = layout.player_paths[pawn.player].get_position(pawn.progress)
+			return LudoPathMath.to_cell3i(cell, layout.elevation)
 		PawnState.FINI:
-			return BoardGenerator.center_cell()
+			var finish: Vector2i = layout.player_paths[pawn.player].get_finish_cell()
+			return LudoPathMath.to_cell3i(finish, layout.elevation)
 	return Vector3i.ZERO
 
 
@@ -126,4 +141,4 @@ func reset_all_to_yard() -> void:
 ## le slot par l'index local du pion dans son équipe (0..3).
 func _yard_cell(pawn: Dictionary) -> Vector3i:
 	var slot: int = pawn.id % BoardConfig.PAWNS_PER_PLAYER
-	return BoardGenerator.yard_cell(pawn.player, slot)
+	return LudoPathMath.to_cell3i(layout.get_yard_cell(pawn.player, slot), layout.elevation)

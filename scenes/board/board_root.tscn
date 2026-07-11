@@ -1,17 +1,6 @@
 [gd_scene format=3 uid="uid://bq7iquxbi1dbn"]
 
 [ext_resource type="MeshLibrary" uid="uid://diqdwcvhuuasl" path="res://resources/LudoMeshLibrary_02.tres" id="1_dwwww"]
-[ext_resource type="Script" uid="uid://bgq55boobs16q" path="res://addons/ludo_board_generator/board_generator.gd" id="2_6lb0e"]
-[ext_resource type="Script" uid="uid://c08hhiu1d8tsf" path="res://addons/ludo_board_generator/resources/mesh_mapping.gd" id="3_205rb"]
-[ext_resource type="Script" uid="uid://crvggmnlrvf83" path="res://addons/ludo_board_generator/resources/board_overrides.gd" id="4_no7h5"]
-
-[sub_resource type="Resource" id="Resource_rxyim"]
-script = ExtResource("3_205rb")
-metadata/_custom_type_script = "uid://c08hhiu1d8tsf"
-
-[sub_resource type="Resource" id="Resource_qwpi7"]
-script = ExtResource("4_no7h5")
-metadata/_custom_type_script = "uid://crvggmnlrvf83"
 
 [node name="BoardRoot" type="Node3D" unique_id=1237762606]
 
@@ -20,12 +9,6 @@ mesh_library = ExtResource("1_dwwww")
 cell_size = Vector3(0.2, 0.2, 0.2)
 cell_center_y = false
 cell_scale = 0.813
-script = ExtResource("2_6lb0e")
-mesh_mapping = SubResource("Resource_rxyim")
-overrides = SubResource("Resource_qwpi7")
-live_preview = false
-grid_map_path = NodePath(".")
-metadata/_editor_floor_ = Vector3(0, 0, 0)
 
 [node name="RingDecor" type="Node3D" parent="." unique_id=1571356788]
 
