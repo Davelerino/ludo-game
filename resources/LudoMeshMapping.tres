@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="LudoMeshMapping" format=3]
+
+[ext_resource type="Script" path="res://addons/ludo_path_system/resources/mesh_mapping.gd" id="1_7lkko"]
+
+[resource]
+script = ExtResource("1_7lkko")

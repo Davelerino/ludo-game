@@ -30,7 +30,7 @@ func _ready() -> void:
 	#    par le plugin "Ludo Board Tools" (Tools > Generate Ludo Board → Ctrl+S).
 	var cfg: BoardConfig = load("res://resources/BoardConfig.tres")
 	var layout: LudoBoardLayout = load("res://resources/BoardLayout.tres")
-	board_manager.setup(cfg, board_root.get_node("GridMap"), layout)
+	board_manager.setup(cfg, board_root.get_node("GridMap"), layout, board_root.get_node("Yards"))
 
 	# 2. Vérifie que le plateau a bien été cuit (warning si vide, pas fatal).
 	board_manager.validate_board()

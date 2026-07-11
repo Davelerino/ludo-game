@@ -23,10 +23,11 @@ func test_repaint_after_segment_edit_reflects_new_cells() -> void:
 	var layout := LudoClassicLayoutBuilder.build()
 	var grid_map := GridMap.new()
 	var mesh_lib := LudoMeshLibraryFactory.get_or_create_mesh_library()
+	var mesh_mapping := LudoMeshMapping.new()  # défauts suffisent, ce test ne vérifie pas les meshes peints
 
 	# 1er "Generate" : construit le cache du shared_ring (52 cases, longueur
 	# initiale du premier segment = 6).
-	LudoBoardPainter.paint(grid_map, mesh_lib, layout)
+	LudoBoardPainter.paint(grid_map, mesh_lib, layout, mesh_mapping)
 	assert(layout.shared_ring.get_length() == 52, "Longueur initiale attendue 52.")
 	var first_segment: LudoPathSegment = layout.shared_ring.segments[0]
 	assert(first_segment.length == 6, "Longueur du 1er segment attendue 6 avant édition.")
@@ -39,7 +40,7 @@ func test_repaint_after_segment_edit_reflects_new_cells() -> void:
 
 	# 2e "Generate" : sans le fix, LudoBoardPainter réutiliserait l'ancien
 	# cache (toujours 52 cases) au lieu de refléter la modification.
-	LudoBoardPainter.paint(grid_map, mesh_lib, layout)
+	LudoBoardPainter.paint(grid_map, mesh_lib, layout, mesh_mapping)
 	assert(layout.shared_ring.get_length() == 50, "Après édition, longueur attendue 50 (52-2), obtenu %d." % layout.shared_ring.get_length())
 
 	grid_map.free()

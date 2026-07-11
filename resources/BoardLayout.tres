@@ -143,4 +143,3 @@ segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_hnd7p"), SubReso
 script = ExtResource("4_q7tel")
 shared_ring = SubResource("Resource_youdm")
 player_paths = Array[ExtResource("1_6on6k")]([SubResource("Resource_bs64a"), SubResource("Resource_p01wy"), SubResource("Resource_y5muh"), SubResource("Resource_sv1rn")])
-yard_positions = Array[Array]([[Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)], [Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)], [Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)], [Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)]])

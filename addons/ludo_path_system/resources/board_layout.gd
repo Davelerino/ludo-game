@@ -1,7 +1,10 @@
 ## Bundle exporté (.tres) qui rassemble toute la géométrie logique d'un
-## plateau Ludo : l'anneau partagé, le chemin complet de chaque joueur
-## (couloir final inclus) et les positions de yard. C'est l'unique asset que
-## BoardManager charge pour convertir un pion logique en position de grille.
+## plateau Ludo : l'anneau partagé et le chemin complet de chaque joueur
+## (couloir final inclus). C'est l'unique asset que BoardManager charge pour
+## convertir un pion logique (en RING/HOME_LANE/FINI) en position de grille.
+##
+## Les yards (état MAISON) n'en font PAS partie : ce n'est pas une géométrie
+## de chemin, juste du décor de scène (Marker3D dans board_root.tscn).
 ##
 ## Indépendant de la GridMap : LudoBoardPainter s'en sert pour peindre une
 ## GridMap, mais ce Resource n'a lui-même aucune dépendance sur GridMap/Node.
@@ -14,17 +17,9 @@ extends Resource
 ## Chemin complet de chaque joueur, indexé par player_id (taille == BoardConfig.PLAYER_COUNT).
 @export var player_paths: Array[LudoPlayerPath] = []
 
-## yard_positions[player_id] = Array[Vector2i] (BoardConfig.PAWNS_PER_PLAYER slots).
-@export var yard_positions: Array[Array] = []
-
 ## Élévation (Y) commune utilisée pour convertir toutes les cellules Vector2i
 ## de ce plateau en Vector3i de GridMap (voir LudoPathMath.to_cell3i).
 @export var elevation: int = 0
-
-
-## Cellule de yard pour un pion donné (par son slot 0..PAWNS_PER_PLAYER-1).
-func get_yard_cell(player_id: int, slot: int) -> Vector2i:
-	return yard_positions[player_id][slot]
 
 
 ## Ré-attache shared_ring à chaque LudoPlayerPath. Nécessaire après un
@@ -70,24 +65,13 @@ func validate() -> Array[String]:
 				]
 			)
 
-	if yard_positions.size() != BoardConfig.PLAYER_COUNT:
-		errors.append("LudoBoardLayout: yard_positions doit contenir %d entrées (trouvé %d)." % [BoardConfig.PLAYER_COUNT, yard_positions.size()])
-	else:
-		for i in range(yard_positions.size()):
-			if yard_positions[i].size() != BoardConfig.PAWNS_PER_PLAYER:
-				errors.append(
-					"LudoBoardLayout: yard_positions[%d] doit contenir %d cases (trouvé %d)." % [
-						i, BoardConfig.PAWNS_PER_PLAYER, yard_positions[i].size()
-					]
-				)
-
 	errors.append_array(_validate_no_overlap())
 	return errors
 
 
-## Vérifie qu'aucune cellule n'est partagée entre l'anneau, les couloirs
-## finaux et les yards — SAUF la case de centre (dernière cellule de chaque
-## home_path), volontairement partagée entre les 4 joueurs.
+## Vérifie qu'aucune cellule n'est partagée entre l'anneau et les couloirs
+## finaux — SAUF la case de centre (dernière cellule de chaque home_path),
+## volontairement partagée entre les 4 joueurs.
 func _validate_no_overlap() -> Array[String]:
 	var errors: Array[String] = []
 	var owner_of: Dictionary = {} # Vector2i -> String (description du propriétaire)
@@ -112,11 +96,5 @@ func _validate_no_overlap() -> Array[String]:
 					continue
 				errors.append("LudoBoardLayout: collision de cellule %s entre %s et home_path[%d]." % [cell, owner_of[cell], i])
 			owner_of[cell] = "home_path[%d]" % i
-
-	for i in range(yard_positions.size()):
-		for slot in yard_positions[i]:
-			if owner_of.has(slot):
-				errors.append("LudoBoardLayout: collision de cellule %s entre %s et yard[%d]." % [slot, owner_of[slot], i])
-			owner_of[slot] = "yard[%d]" % i
 
 	return errors
