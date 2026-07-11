@@ -28,7 +28,7 @@ window/size/viewport_height=720
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/ludo_board_generator/plugin.cfg", "res://addons/ludo_board_tools/plugin.cfg")
+enabled=PackedStringArray("res://addons/ludo_board_tools/plugin.cfg")
 
 [input]
 
