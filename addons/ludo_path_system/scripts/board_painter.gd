@@ -22,6 +22,18 @@ static func paint(grid_map: GridMap, mesh_lib: MeshLibrary, layout: LudoBoardLay
 
 	grid_map.mesh_library = mesh_lib
 
+	# LudoPathDescriptor met son cache de cellules en cache APRÈS le premier
+	# accès et ne le reconstruit jamais tout seul (par design, voir son
+	# docstring — c'est une optimisation runtime, pas pertinente ici). Sans
+	# ce rebuild explicite, éditer des segments dans l'Inspector puis
+	# relancer "Generate Ludo Board" repeindrait avec les ANCIENNES cellules
+	# si ce LudoBoardLayout avait déjà été peint une fois dans cette session
+	# éditeur (l'objet Resource, et donc son cache, reste en mémoire).
+	layout.shared_ring.rebuild_cache()
+	for path in layout.player_paths:
+		if path != null and path.home_path != null:
+			path.home_path.rebuild_cache()
+
 	for cell in layout.shared_ring.get_all_cells():
 		grid_map.set_cell_item(LudoPathMath.to_cell3i(cell, layout.elevation), LudoMeshLibraryFactory.ITEM_RING_PATH)
 
