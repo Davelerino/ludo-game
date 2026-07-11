@@ -185,10 +185,31 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 		return
 
 	var entry: Dictionary = _pending_dice[0]
+
+	# Snapshot AVANT toute mutation : apply_move() va muter pawn.state/progress
+	# (et ceux de la victime en cas de capture) en place, donc c'est le seul
+	# moyen pour PawnController de connaître le point de départ de l'animation.
+	var old_state: int = pawn.state
+	var old_progress: int = pawn.progress
+
+	var preview: Dictionary = RuleEngine.try_move(pawn, entry.value, board_manager.all_pawns)
+	if not preview.legal:
+		# Sélection invalide (race) : on ignore, le joueur doit rechoisir.
+		return
+
+	var capture_info: Dictionary = {}
+	if preview.capture:
+		var victim: Dictionary = preview.captured_pawn
+		capture_info = {
+			"captured_pawn": victim,
+			"old_state": victim.state,
+			"old_progress": victim.progress,
+		}
+
 	# Valide (via RuleEngine) puis applique réellement le mouvement.
 	var result: Dictionary = RuleEngine.apply_move(pawn, entry.value, board_manager.all_pawns)
 	if not result.legal:
-		# Sélection invalide (race) : on ignore, le joueur doit rechoisir.
+		# Défensif : try_move()/apply_move() doivent converger, ne devrait pas arriver.
 		return
 
 	_last_result = result
@@ -202,8 +223,9 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 		GameEvents.pawn_captured.emit(result.captured_pawn, pawn)
 
 	_change_state(TurnState.MOVING)
-	pawn_controller.move_pawn_visual(pawn, true)
-	# -> l'animation appellera _on_move_animation_done via pawn_moved.
+	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, entry.value, capture_info, true)
+	# -> l'animation (mouvement + éventuelle étape de capture) appellera
+	# _on_move_animation_done via pawn_moved, une fois TOUTE l'animation finie.
 	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
 
 

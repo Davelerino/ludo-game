@@ -16,7 +16,9 @@ extends RefCounted
 ##     "id": int,
 ##     "player": int,               # 0..PLAYER_COUNT-1
 ##     "state": BoardConfig.PawnState,
-##     "progress": int,             # -1 (yard) ou 0..FINISH_PROGRESS
+##     "progress": int,             # -1 (yard/capturé) ou 0..FINISH_PROGRESS
+##     "captor_id": int,            # -1, ou id du joueur dont la zone de
+##                                  # capture retient ce pion (state==CAPTURED)
 ##   }
 ##
 ## Aucune fonction de cette classe ne mute directement l'état sauf apply_move(),
@@ -117,10 +119,24 @@ static func _empty_result(reason: String) -> Dictionary:
 
 ## Valide (sans muter l'état) le déplacement de `pawn` avec la valeur `dice_value`.
 ## Couvre : sortie du yard (§4.2), transit/atterrissage sur barrière (§6.3),
-## capture (§8.1-8.2), dépassement en home lane (H4/H5, L9), entrée en home lane (L5).
+## capture (§8.1-8.2), dépassement en home lane (H4/H5, L9), entrée en home lane (L5),
+## évasion de zone de capture.
 static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dictionary:
 	if pawn.state == PawnState.FINI:
 		return _empty_result("pawn_already_finished")
+
+	# --- Cas 0 : pion retenu dans une zone de capture — nécessite un 6 pour
+	# s'évader, mais retourne dans SON PROPRE yard (MAISON), pas directement
+	# sur l'anneau. Aucune vérification de barrière/occupation : un yard
+	# privé n'est jamais contesté (contrairement à la sortie de yard normale
+	# ci-dessous, qui elle atterrit sur l'anneau partagé).
+	if pawn.state == PawnState.CAPTURED:
+		if dice_value != BoardConfig.ENTRY_DICE_VALUE:
+			return _empty_result("needs_six_to_escape_capture")
+		var result: Dictionary = _empty_result("")
+		result.legal = true
+		# _empty_result() donne déjà new_state=MAISON, new_progress=-1.
+		return result
 
 	# --- Cas 1 : pion au yard (MAISON) — nécessite un 6 pour entrer (§4.2) ---
 	if pawn.state == PawnState.MAISON:
@@ -239,10 +255,16 @@ static func apply_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> D
 	pawn.state = result.new_state
 	pawn.progress = result.new_progress
 
+	# Évasion de zone de capture (cf. try_move Cas 0) : le pion redevient un
+	# pion de yard normal, il ne retient plus son ancien capteur.
+	if pawn.state == PawnState.MAISON:
+		pawn.captor_id = -1
+
 	if result.capture:
 		var victim: Dictionary = result.captured_pawn
-		victim.state = PawnState.MAISON
+		victim.state = PawnState.CAPTURED
 		victim.progress = -1
+		victim.captor_id = pawn.player
 		# NOTE (§8.3, R4) : le verrouillage du pion capturant pour le reste du tour
 		# n'est PAS géré ici (le RuleEngine reste sans état de "tour"). C'est au
 		# TurnManager d'ajouter pawn.id à sa liste `locked_pawn_ids` en lisant

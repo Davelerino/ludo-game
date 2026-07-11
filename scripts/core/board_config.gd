@@ -1,3 +1,4 @@
+@tool
 class_name BoardConfig
 extends Resource
 ## ============================================================================
@@ -29,7 +30,11 @@ const HOME_ENTRY_PROGRESS: int = RING_SIZE - 1                              # 51
 const FINISH_PROGRESS: int = HOME_ENTRY_PROGRESS + HOME_LANE_LENGTH - 1     # 56
 
 # --- États d'un pion (§11.3) ---
-enum PawnState { MAISON, RING, HOME_LANE, FINI }
+# CAPTURED : pion capturé, retenu dans la zone de capture du joueur capteur
+# (pawn.captor_id). Un 6 le renvoie dans SON PROPRE yard (MAISON), pas
+# directement sur l'anneau — la sortie de yard classique s'applique ensuite,
+# inchangée.
+enum PawnState { MAISON, RING, HOME_LANE, FINI, CAPTURED }
 
 # --- Mode de fin de partie (§2.3) ---
 enum GameEndMode { FIRST_TO_FINISH, FULL_RANKING }
@@ -53,6 +58,7 @@ static func create_pawn(pawn_id: int, player_id: int) -> Dictionary:
 		"player": player_id,
 		"state": PawnState.MAISON,
 		"progress": -1,   # -1 = pas de progression tant que le pion est au yard
+		"captor_id": -1,  # id du joueur dont la zone de capture retient ce pion (-1 = aucun)
 	}
 
 ## Fabrique les PAWNS_PER_PLAYER pions initiaux pour un joueur donné.
