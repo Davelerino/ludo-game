@@ -7,6 +7,7 @@
 ##
 ## Le RuleEngine ne manipule qu'un entier `progress` par pion ; LudoPlayerPath
 ## est la seule classe qui sait traduire ce progress en Vector2i.
+@tool
 class_name LudoPlayerPath
 extends Resource
 

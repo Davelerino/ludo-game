@@ -13,6 +13,7 @@
 ## Chaque bras est ensuite compressé en LudoPathSegment (voir
 ## _build_descriptor_from_cells) : c'est le pont entre "coordonnées bien
 ## comprises case par case" et "représentation compacte par segments".
+@tool
 class_name LudoClassicLayoutBuilder
 extends RefCounted
 
@@ -33,29 +34,34 @@ static func build() -> LudoBoardLayout:
 # Anneau partagé (52 cases)
 # ============================================================================
 
+## Ordre des bras : BLUE (bas-gauche, index 0) -> GREEN (haut-gauche, 13)
+## -> RED (haut-droite, 26) -> YELLOW (bas-droite, 39), pour correspondre
+## exactement à la numérotation S0/S13/S26/S39 du plateau de référence
+## (image du GDD) plutôt qu'à un ordre horaire arbitraire à partir du coin
+## haut-gauche.
 static func _build_shared_ring() -> LudoPathDescriptor:
-	var red_arm := _walk(Vector2i(1, 6), [
+	var top_left_arm := _walk(Vector2i(1, 6), [
 		[Vector2i(1, 0), 5],
 		[Vector2i(0, -1), 6],
 		[Vector2i(1, 0), 1],
 	])
-	var green_arm := _walk(Vector2i(8, 0), [
+	var top_right_arm := _walk(Vector2i(8, 0), [
 		[Vector2i(0, 1), 5],
 		[Vector2i(1, 0), 5],
 		[Vector2i(0, 1), 2],
 	])
-	var yellow_arm: Array[Vector2i] = []
-	for p in red_arm:
-		yellow_arm.append(_rotate180(p))
-	var blue_arm: Array[Vector2i] = []
-	for p in green_arm:
-		blue_arm.append(_rotate180(p))
+	var bottom_right_arm: Array[Vector2i] = []
+	for p in top_left_arm:
+		bottom_right_arm.append(_rotate180(p))
+	var bottom_left_arm: Array[Vector2i] = []
+	for p in top_right_arm:
+		bottom_left_arm.append(_rotate180(p))
 
 	var all_cells: Array[Vector2i] = []
-	all_cells.append_array(red_arm)
-	all_cells.append_array(green_arm)
-	all_cells.append_array(yellow_arm)
-	all_cells.append_array(blue_arm)
+	all_cells.append_array(bottom_left_arm)  # index 0..12  : BLUE  (S0)
+	all_cells.append_array(top_left_arm)     # index 13..25 : GREEN (S13)
+	all_cells.append_array(top_right_arm)    # index 26..38 : RED   (S26)
+	all_cells.append_array(bottom_right_arm) # index 39..51 : YELLOW (S39)
 
 	return _build_descriptor_from_cells(all_cells)
 
@@ -124,10 +130,10 @@ static func _build_descriptor_from_cells(cells: Array[Vector2i]) -> LudoPathDesc
 
 static func _build_player_paths(shared_ring: LudoPathDescriptor) -> Array[LudoPlayerPath]:
 	var home_specs := [
-		[Vector2i(2, 7), Vector2i(1, 0)],   # player 0 (RED)   : row7,  col croissant
-		[Vector2i(7, 2), Vector2i(0, 1)],   # player 1 (GREEN) : col7,  row croissant
-		[Vector2i(12, 7), Vector2i(-1, 0)], # player 2 (YELLOW): row7,  col décroissant
-		[Vector2i(7, 12), Vector2i(0, -1)], # player 3 (BLUE)  : col7,  row décroissant
+		[Vector2i(7, 12), Vector2i(0, -1)], # player 0 (BLUE)  : col7,  row décroissant
+		[Vector2i(2, 7), Vector2i(1, 0)],   # player 1 (GREEN) : row7,  col croissant
+		[Vector2i(7, 2), Vector2i(0, 1)],   # player 2 (RED)   : col7,  row croissant
+		[Vector2i(12, 7), Vector2i(-1, 0)], # player 3 (YELLOW): row7,  col décroissant
 	]
 
 	var paths: Array[LudoPlayerPath] = []
@@ -149,8 +155,8 @@ static func _build_player_paths(shared_ring: LudoPathDescriptor) -> Array[LudoPl
 
 static func _build_yard_positions() -> Array[Array]:
 	return [
-		[Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)],       # player 0 (RED)   : coin haut-gauche
-		[Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)],   # player 1 (GREEN) : coin haut-droit
-		[Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)], # player 2 (YELLOW): coin bas-droit
-		[Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)],   # player 3 (BLUE)  : coin bas-gauche
+		[Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)],   # player 0 (BLUE)  : coin bas-gauche
+		[Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)],       # player 1 (GREEN) : coin haut-gauche
+		[Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)],   # player 2 (RED)   : coin haut-droit
+		[Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)], # player 3 (YELLOW): coin bas-droit
 	]

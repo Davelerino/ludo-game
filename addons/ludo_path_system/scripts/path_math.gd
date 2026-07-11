@@ -1,6 +1,7 @@
 ## Seul point de conversion entre l'espace logique 2D (Vector2i, col/row) du
 ## système de chemin et l'espace GridMap 3D (Vector3i, col/elevation/row).
 ## Évite de dupliquer cette conversion dans BoardManager, LudoBoardPainter, etc.
+@tool
 class_name LudoPathMath
 extends RefCounted
 

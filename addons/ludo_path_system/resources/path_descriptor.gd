@@ -8,6 +8,7 @@
 ## pour offrir un accès O(1) en jeu (get_cell / get_index_at), sans jamais
 ## polluer les données sources. Le cache n'est PAS auto-invalidé : si vous
 ## modifiez `segments` à l'exécution, appelez rebuild_cache() explicitement.
+@tool
 class_name LudoPathDescriptor
 extends Resource
 

@@ -7,12 +7,12 @@
 
 [sub_resource type="Resource" id="Resource_k64b6"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(1, 0)
+direction = Vector2i(0, -1)
 length = 6
 
 [sub_resource type="Resource" id="Resource_1hcqd"]
 script = ExtResource("2_ouhvx")
-start_position = Vector2i(2, 7)
+start_position = Vector2i(7, 12)
 segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_k64b6")])
 
 [sub_resource type="Resource" id="Resource_bs64a"]
@@ -21,12 +21,12 @@ home_path = SubResource("Resource_1hcqd")
 
 [sub_resource type="Resource" id="Resource_2nhrl"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(0, 1)
+direction = Vector2i(1, 0)
 length = 6
 
 [sub_resource type="Resource" id="Resource_vnrkg"]
 script = ExtResource("2_ouhvx")
-start_position = Vector2i(7, 2)
+start_position = Vector2i(2, 7)
 segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_2nhrl")])
 
 [sub_resource type="Resource" id="Resource_p01wy"]
@@ -36,12 +36,12 @@ home_path = SubResource("Resource_vnrkg")
 
 [sub_resource type="Resource" id="Resource_38dcd"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(-1, 0)
+direction = Vector2i(0, 1)
 length = 6
 
 [sub_resource type="Resource" id="Resource_mox8i"]
 script = ExtResource("2_ouhvx")
-start_position = Vector2i(12, 7)
+start_position = Vector2i(7, 2)
 segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_38dcd")])
 
 [sub_resource type="Resource" id="Resource_y5muh"]
@@ -51,12 +51,12 @@ home_path = SubResource("Resource_mox8i")
 
 [sub_resource type="Resource" id="Resource_2rgxj"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(0, -1)
+direction = Vector2i(-1, 0)
 length = 6
 
 [sub_resource type="Resource" id="Resource_v1yj8"]
 script = ExtResource("2_ouhvx")
-start_position = Vector2i(7, 12)
+start_position = Vector2i(12, 7)
 segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_2rgxj")])
 
 [sub_resource type="Resource" id="Resource_sv1rn"]
@@ -66,82 +66,81 @@ home_path = SubResource("Resource_v1yj8")
 
 [sub_resource type="Resource" id="Resource_hnd7p"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(1, 0)
+direction = Vector2i(0, -1)
 length = 6
 
 [sub_resource type="Resource" id="Resource_d4b8b"]
+script = ExtResource("3_ur6l7")
+direction = Vector2i(-1, 0)
+length = 5
+offset = Vector2i(-1, 0)
+
+[sub_resource type="Resource" id="Resource_w6iow"]
+script = ExtResource("3_ur6l7")
+direction = Vector2i(0, -1)
+length = 3
+offset = Vector2i(0, -1)
+
+[sub_resource type="Resource" id="Resource_po7p1"]
+script = ExtResource("3_ur6l7")
+direction = Vector2i(1, 0)
+length = 5
+offset = Vector2i(1, 0)
+
+[sub_resource type="Resource" id="Resource_ebfwl"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(0, -1)
 length = 6
 offset = Vector2i(0, -1)
 
-[sub_resource type="Resource" id="Resource_w6iow"]
+[sub_resource type="Resource" id="Resource_7xa6c"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(1, 0)
 length = 2
 offset = Vector2i(1, 0)
 
-[sub_resource type="Resource" id="Resource_po7p1"]
+[sub_resource type="Resource" id="Resource_rm1d6"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(0, 1)
 length = 5
 offset = Vector2i(0, 1)
 
-[sub_resource type="Resource" id="Resource_ebfwl"]
+[sub_resource type="Resource" id="Resource_xl7c4"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(1, 0)
 length = 5
 offset = Vector2i(1, 0)
 
-[sub_resource type="Resource" id="Resource_7xa6c"]
+[sub_resource type="Resource" id="Resource_pjrg2"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(0, 1)
 length = 3
 offset = Vector2i(0, 1)
 
-[sub_resource type="Resource" id="Resource_rm1d6"]
+[sub_resource type="Resource" id="Resource_jf68h"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(-1, 0)
 length = 5
 offset = Vector2i(-1, 0)
 
-[sub_resource type="Resource" id="Resource_xl7c4"]
+[sub_resource type="Resource" id="Resource_u0lqd"]
 script = ExtResource("3_ur6l7")
 direction = Vector2i(0, 1)
 length = 6
 offset = Vector2i(0, 1)
 
-[sub_resource type="Resource" id="Resource_pjrg2"]
-script = ExtResource("3_ur6l7")
-direction = Vector2i(-1, 0)
-length = 2
-offset = Vector2i(-1, 0)
-
-[sub_resource type="Resource" id="Resource_jf68h"]
-script = ExtResource("3_ur6l7")
-direction = Vector2i(0, -1)
-length = 5
-offset = Vector2i(0, -1)
-
-[sub_resource type="Resource" id="Resource_u0lqd"]
-script = ExtResource("3_ur6l7")
-direction = Vector2i(-1, 0)
-length = 5
-offset = Vector2i(-1, 0)
-
 [sub_resource type="Resource" id="Resource_snf06"]
 script = ExtResource("3_ur6l7")
-direction = Vector2i(0, -1)
-length = 2
-offset = Vector2i(0, -1)
+direction = Vector2i(-1, 0)
+offset = Vector2i(-1, 0)
 
 [sub_resource type="Resource" id="Resource_youdm"]
 script = ExtResource("2_ouhvx")
-start_position = Vector2i(1, 6)
+start_position = Vector2i(6, 14)
 segments = Array[ExtResource("3_ur6l7")]([SubResource("Resource_hnd7p"), SubResource("Resource_d4b8b"), SubResource("Resource_w6iow"), SubResource("Resource_po7p1"), SubResource("Resource_ebfwl"), SubResource("Resource_7xa6c"), SubResource("Resource_rm1d6"), SubResource("Resource_xl7c4"), SubResource("Resource_pjrg2"), SubResource("Resource_jf68h"), SubResource("Resource_u0lqd"), SubResource("Resource_snf06")])
 
 [resource]
 script = ExtResource("4_q7tel")
 shared_ring = SubResource("Resource_youdm")
 player_paths = Array[ExtResource("1_6on6k")]([SubResource("Resource_bs64a"), SubResource("Resource_p01wy"), SubResource("Resource_y5muh"), SubResource("Resource_sv1rn")])
-yard_positions = Array[Array]([[Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)], [Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)], [Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)], [Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)]])
+yard_positions = Array[Array]([[Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)], [Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)], [Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)], [Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)]])

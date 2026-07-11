@@ -3,6 +3,7 @@
 ## uniquement responsable des assets visuels. Repris tel quel de l'ancien
 ## scripts/core/board_generator.gd (logique inchangée), séparé de la
 ## géométrie qui est maintenant portée par LudoBoardLayout/LudoBoardPainter.
+@tool
 class_name LudoMeshLibraryFactory
 extends RefCounted
 
