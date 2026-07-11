@@ -28,6 +28,8 @@ func _init() -> void:
 	test_landing_on_ally_barrier_legal()
 	test_capture_on_ring()
 	test_no_capture_on_ally_stack_forms_barrier()
+	test_captured_pawn_needs_six_to_escape()
+	test_captured_pawn_escapes_on_six()
 	test_home_lane_entry()
 	test_home_lane_overshoot_illegal()
 	test_home_lane_exact_finish()
@@ -51,10 +53,13 @@ func _assert(condition: bool, label: String) -> void:
 		print("  [FAIL] %s" % label)
 
 func _pawn_ring(id: int, player: int, progress: int) -> Dictionary:
-	return {"id": id, "player": player, "state": PawnState.RING, "progress": progress}
+	return {"id": id, "player": player, "state": PawnState.RING, "progress": progress, "captor_id": -1}
 
 func _pawn_yard(id: int, player: int) -> Dictionary:
 	return BoardConfig.create_pawn(id, player)
+
+func _pawn_captured(id: int, player: int, captor_id: int) -> Dictionary:
+	return {"id": id, "player": player, "state": PawnState.CAPTURED, "progress": -1, "captor_id": captor_id}
 
 
 # ----------------------------------------------------------------------------
@@ -82,7 +87,8 @@ func test_entry_captures_lone_enemy() -> void:
 	var lone_enemy: Dictionary = _pawn_ring(10, 1, 39)
 	var r: Dictionary = RuleEngine.apply_move(entering, 6, [entering, lone_enemy])
 	_assert(r.legal and r.capture, "l'entrée capture le pion adverse isolé")
-	_assert(lone_enemy.state == PawnState.MAISON, "le pion capturé retourne au yard")
+	_assert(lone_enemy.state == PawnState.CAPTURED and lone_enemy.captor_id == entering.player,
+		"le pion capturé va dans la zone de capture du capteur")
 
 
 func test_transit_blocked_by_enemy_barrier() -> void:
@@ -127,8 +133,8 @@ func test_capture_on_ring() -> void:
 	var mover: Dictionary = _pawn_ring(0, 0, 0)
 	var lone_enemy: Dictionary = _pawn_ring(10, 1, (5 - 13 + 52) % 52)
 	var r: Dictionary = RuleEngine.apply_move(mover, 5, [mover, lone_enemy])
-	_assert(r.legal and r.capture and lone_enemy.state == PawnState.MAISON,
-		"capture d'un pion adverse seul sur la ring lane")
+	_assert(r.legal and r.capture and lone_enemy.state == PawnState.CAPTURED and lone_enemy.captor_id == mover.player,
+		"capture d'un pion adverse seul sur la ring lane -> zone de capture du capteur")
 
 
 func test_no_capture_on_ally_stack_forms_barrier() -> void:
@@ -138,6 +144,24 @@ func test_no_capture_on_ally_stack_forms_barrier() -> void:
 	var r: Dictionary = RuleEngine.apply_move(mover, 5, [mover, ally])
 	_assert(r.legal and not r.capture and r.forms_barrier,
 		"rejoindre un allié forme une barrière (pas de capture)")
+
+
+func test_captured_pawn_needs_six_to_escape() -> void:
+	print("-- test_captured_pawn_needs_six_to_escape --")
+	var pawn: Dictionary = _pawn_captured(0, 0, 1)
+	var r: Dictionary = RuleEngine.try_move(pawn, 3, [pawn])
+	_assert(not r.legal and r.reason == "needs_six_to_escape_capture",
+		"un dé autre que 6 ne libère pas un pion capturé")
+
+
+func test_captured_pawn_escapes_on_six() -> void:
+	print("-- test_captured_pawn_escapes_on_six --")
+	var pawn: Dictionary = _pawn_captured(0, 0, 1)
+	var r: Dictionary = RuleEngine.apply_move(pawn, 6, [pawn])
+	_assert(r.legal, "un 6 libère un pion capturé")
+	_assert(pawn.state == PawnState.MAISON and pawn.progress == -1,
+		"le pion évadé retourne dans son propre yard (pas directement sur l'anneau)")
+	_assert(pawn.captor_id == -1, "captor_id est réinitialisé après évasion")
 
 
 func test_home_lane_entry() -> void:

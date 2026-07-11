@@ -27,6 +27,7 @@ const PawnState := BoardConfig.PawnState
 
 # --- Références à rattacher dans l'inspecteur / au _ready() ---
 @export var board_manager: BoardManager
+@export var board_tuning: BoardTuning
 
 # --- Noeuds 3D des pions, indexés par pawn.id ---
 # En attendant les vrais meshes, on stocke des Marker3D invisibles pour que la
@@ -61,26 +62,92 @@ func clear() -> void:
 	selected_pawn_id = -1
 
 
-## Met à jour la position 3D d'un pion après un coup, avec animation optionnelle.
-## Ne change QUE la transform visuelle ; l'état logique a déjà été muté par le
-## RuleEngine au moment de l'appel.
-func move_pawn_visual(pawn: Dictionary, animate: bool = true) -> void:
+## Met à jour la position 3D d'un pion après un coup, avec animation optionnelle
+## case par case. Ne change QUE la transform visuelle ; l'état logique a déjà
+## été muté par RuleEngine.apply_move() au moment de l'appel — `old_state`/
+## `old_progress` sont donc un SNAPSHOT pris par l'appelant (TurnManager) avant
+## cette mutation, seul moyen de connaître le point de départ de l'animation.
+##
+## `capture_info`, si non vide, vaut {"captured_pawn": Dictionary, "old_state":
+## int, "old_progress": int} — le snapshot PRÉ-mutation de la victime (elle
+## aussi déjà mutée en CAPTURED au moment de l'appel). Dans ce cas, une
+## deuxième animation (le pion capturé partant vers sa zone de capture)
+## s'ajoute APRÈS l'animation principale, sur le MÊME Tween (séquentiel).
+func move_pawn_visual(
+	pawn: Dictionary,
+	old_state: int,
+	old_progress: int,
+	dice_value: int,
+	capture_info: Dictionary = {},
+	animate: bool = true
+) -> void:
 	var node: Node3D = _pawn_nodes.get(pawn.id)
 	if node == null or not is_instance_valid(node):
 		return
-	var target: Vector3 = board_manager.cell_world_position(pawn)
+	var final_target: Vector3 = board_manager.cell_world_position(pawn)
+
 	if not animate:
-		node.position = target
+		node.position = final_target
+		if not capture_info.is_empty():
+			var victim: Dictionary = capture_info.captured_pawn
+			var victim_node: Node3D = _pawn_nodes.get(victim.id)
+			if victim_node != null and is_instance_valid(victim_node):
+				victim_node.position = board_manager.cell_world_position(victim)
+		GameEvents.pawn_moved.emit(pawn, dice_value)
 		return
-	# Tween linéaire simple (placeholder) ; à remplacer par une courbe d'arc.
+
+	var duration: float = board_tuning.move_duration if board_tuning else 0.35
 	var tween: Tween = create_tween()
-	tween.tween_property(node, "position", target, 0.35)\
-		.set_trans(Tween.TRANS_SINE)\
-		.set_ease(Tween.EASE_IN_OUT)
-	# L'émission de pawn_moved se fait après l'animation.
+
+	# (b)/(c) sortie de yard ou évasion de zone de capture : un seul saut, pas
+	# de cases intermédiaires (aucune n'existe entre une zone décorative et
+	# l'anneau/le yard).
+	var is_single_hop: bool = (
+		(old_state == PawnState.MAISON and pawn.state == PawnState.RING)
+		or (old_state == PawnState.CAPTURED and pawn.state == PawnState.MAISON)
+	)
+
+	if is_single_hop:
+		tween.tween_property(node, "position", final_target, duration)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	else:
+		# (a) mouvement normal RING/HOME_LANE : un hop par case intermédiaire.
+		for step_progress in range(old_progress + 1, pawn.progress):
+			var waypoint: Vector3 = board_manager.world_position_for_progress(pawn.player, step_progress)
+			tween.tween_property(node, "position", waypoint, duration)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(node, "position", final_target, duration)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	if not capture_info.is_empty():
+		_append_capture_stage(tween, capture_info)
+
+	# L'émission de pawn_moved se fait après TOUTE l'animation (y compris
+	# l'étape de capture éventuelle, puisqu'elle est sur le même Tween).
 	tween.finished.connect(func():
-		GameEvents.pawn_moved.emit(pawn, _last_dice_for(pawn))
+		GameEvents.pawn_moved.emit(pawn, dice_value)
 	, CONNECT_ONE_SHOT)
+
+
+## (d) Animation séparée de la capture : ajoutée en étape SÉQUENTIELLE (pas
+## .parallel()) sur le tween du pion capturant, donc s'exécute forcément APRÈS
+## que celui-ci ait fini de bouger.
+func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
+	var victim: Dictionary = capture_info.captured_pawn
+	var victim_node: Node3D = _pawn_nodes.get(victim.id)
+	if victim_node == null or not is_instance_valid(victim_node):
+		return
+	var cap_duration: float = board_tuning.capture_duration if board_tuning else 0.5
+	# victim.state est déjà CAPTURED (apply_move() l'a déjà mutée par
+	# référence), donc cell_world_position(victim) résout sa nouvelle case de
+	# zone de capture.
+	var victim_target: Vector3 = board_manager.cell_world_position(victim)
+	# Point de départ explicite (case ring d'avant capture, dérivée du snapshot
+	# pré-mutation) plutôt que la transform courante du nœud — plus robuste.
+	var victim_from: Vector3 = board_manager.world_position_for_progress(victim.player, capture_info.old_progress)
+	tween.tween_property(victim_node, "position", victim_target, cap_duration)\
+		.from(victim_from)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 ## Renvoie un pion cliquable par le joueur actif (sélection souris, §11.6).
@@ -107,10 +174,3 @@ func _unhandled_input(event: InputEvent) -> void:
 		# TODO final : raycast depuis la caméra vers _pawn_nodes, puis select_pawn().
 		# Le squelette ne fait rien ici tant qu'on n'a pas de meshes cliquables.
 		pass
-
-
-# --- interne -----------------------------------------------------------------
-var _last_dice_map: Dictionary = {}  # pawn.id -> dice_value (pour le signal)
-
-func _last_dice_for(pawn: Dictionary) -> int:
-	return _last_dice_map.get(pawn.id, 0)

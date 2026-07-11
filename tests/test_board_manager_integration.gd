@@ -11,6 +11,7 @@ func _initialize() -> void:
 	var board_root: Node3D = (load("res://scenes/board/board_root.tscn") as PackedScene).instantiate()
 	var grid_map: GridMap = board_root.get_node("GridMap")
 	var yards_root: Node3D = board_root.get_node("Yards")
+	var capture_zones_root: Node3D = board_root.get_node("CaptureZones")
 
 	var mesh_lib: MeshLibrary = LudoMeshLibraryFactory.get_or_create_mesh_library()
 	assert(mesh_lib != null, "MeshLibrary ne devrait pas être null.")
@@ -26,7 +27,7 @@ func _initialize() -> void:
 
 	var board_manager: BoardManager = BoardManager.new()
 	var cfg: BoardConfig = load("res://resources/BoardConfig.tres")
-	board_manager.setup(cfg, grid_map, layout, yards_root)
+	board_manager.setup(cfg, grid_map, layout, yards_root, capture_zones_root)
 	assert(board_manager.validate_board(), "validate_board() devrait réussir avec un plateau peint et un layout valide.")
 
 	# Un pion au yard : doit résoudre la position monde du Marker3D correspondant.
@@ -35,6 +36,16 @@ func _initialize() -> void:
 	var expected_marker: Node3D = yards_root.get_node("Player0/Slot0")
 	assert(yard_world_pos == expected_marker.position,
 		"cell_world_position() d'un pion au yard incohérent avec le Marker3D Player0/Slot0.")
+
+	# Un pion CAPTURED : doit résoudre le Marker3D de la zone du capteur (pas la sienne).
+	var captured_pawn: Dictionary = board_manager.get_pawn_by_id(1)
+	captured_pawn.state = BoardConfig.PawnState.CAPTURED
+	captured_pawn.progress = -1
+	captured_pawn.captor_id = 1
+	var captured_world_pos: Vector3 = board_manager.cell_world_position(captured_pawn)
+	var expected_capture_marker: Node3D = capture_zones_root.get_node("Player1/Slot0")
+	assert(captured_world_pos == expected_capture_marker.position,
+		"cell_world_position() d'un pion CAPTURED incohérent avec le Marker3D Player1/Slot0.")
 
 	# Simule une entrée en jeu (progress 0) : doit correspondre à la start tile du joueur.
 	yard_pawn.state = BoardConfig.PawnState.RING

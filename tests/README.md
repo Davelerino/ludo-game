@@ -13,7 +13,7 @@ godot --headless --script res://tests/test_rule_engine.gd
 Résultat attendu :
 
 ```
-14 PASS / 0 FAIL
+19 PASS / 0 FAIL
 ```
 
 ## Couverture (cas limites du GDD)
@@ -29,11 +29,18 @@ Résultat attendu :
 | `test_landing_on_ally_barrier_legal` | B6 |
 | `test_capture_on_ring` | §8.1 |
 | `test_no_capture_on_ally_stack_forms_barrier` | B4 |
+| `test_captured_pawn_needs_six_to_escape` | zone de capture |
+| `test_captured_pawn_escapes_on_six` | zone de capture |
 | `test_home_lane_entry` | §7.2, L5 |
 | `test_home_lane_overshoot_illegal` | H4, L9 |
 | `test_home_lane_exact_finish` | H1, H5 |
 | `test_no_barrier_effect_in_home_lane` | §7.5 |
 | `test_victory_detection` | §2.3, L12 |
+
+**Zone de capture** : un pion capturé va dans la zone de capture du joueur
+qui l'a capturé (`PawnState.CAPTURED`, `captor_id`), pas dans son propre
+yard. Un 6 le renvoie dans SON PROPRE yard (`MAISON`) — pas directement sur
+l'anneau —, la sortie de yard classique s'applique ensuite normalement.
 
 ## Pourquoi ce n'est pas un test du TurnManager
 

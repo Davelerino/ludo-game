@@ -27,6 +27,8 @@ extends Node
 ##   - yards_root (Node3D) : conteneur "Yards" de board_root.tscn, avec des
 ##     Marker3D Player<id>/Slot<n> — pur décor pour l'état MAISON, PAS une
 ##     géométrie de chemin (voir _yard_world_position()).
+##   - capture_zones_root (Node3D) : conteneur "CaptureZones" de board_root.tscn,
+##     même principe pour l'état CAPTURED (voir _capture_zone_world_position()).
 ## ============================================================================
 
 const PawnState := BoardConfig.PawnState
@@ -38,6 +40,8 @@ const PawnState := BoardConfig.PawnState
 var grid_map: GridMap
 ## Conteneur des Marker3D de yard ("Yards" dans board_root.tscn).
 var yards_root: Node3D
+## Conteneur des Marker3D de zone de capture ("CaptureZones" dans board_root.tscn).
+var capture_zones_root: Node3D
 
 ## Source de vérité d'état (les mêmes Dictionaries que ceux du RuleEngine).
 var all_pawns: Array = []
@@ -45,11 +49,12 @@ var all_pawns: Array = []
 
 ## Initialise les pions (4 par joueur, état MAISON) et assigne les dépendances.
 ## NE génère PAS le plateau — voir validate_board() pour le contrôle.
-func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout, p_yards_root: Node3D) -> void:
+func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout, p_yards_root: Node3D, p_capture_zones_root: Node3D) -> void:
 	config = p_config
 	grid_map = p_grid_map
 	layout = p_layout
 	yards_root = p_yards_root
+	capture_zones_root = p_capture_zones_root
 	if layout != null:
 		layout.rewire()
 	_init_pawns()
@@ -111,16 +116,31 @@ func cell_of(pawn: Dictionary) -> Vector3i:
 
 
 ## Position monde (Vector3) d'un pion — utilisée par le PawnController.
-## MAISON est du pur décor de scène (Marker3D sous yards_root), pas une case
-## de GridMap : traité à part, avant tout appel à cell_of().
+## MAISON/CAPTURED sont du pur décor de scène (Marker3D sous yards_root /
+## capture_zones_root), pas des cases de GridMap : traités à part, avant tout
+## appel à cell_of().
 func cell_world_position(pawn: Dictionary) -> Vector3:
 	if pawn.state == PawnState.MAISON:
 		return _yard_world_position(pawn)
+	if pawn.state == PawnState.CAPTURED:
+		return _capture_zone_world_position(pawn)
 	if grid_map != null:
 		return grid_map.map_to_local(cell_of(pawn))
 	# Fallback si la GridMap n'existe pas (dev only).
 	var c: Vector3i = cell_of(pawn)
 	return Vector3(c.x, 0, c.z)
+
+
+## Position monde pour un player_id + progress ARBITRAIRE (RING/HOME_LANE/FINI),
+## sans passer par un Dictionary de pion réel. Utilisée par PawnController pour
+## calculer les cases intermédiaires d'une animation multi-hop, sans avoir
+## besoin de muter (ou dupliquer) un pion réel. Fonction pure.
+func world_position_for_progress(player_id: int, progress: int) -> Vector3:
+	var cell2i: Vector2i = layout.player_paths[player_id].get_position(progress)
+	var cell3i: Vector3i = LudoPathMath.to_cell3i(cell2i, layout.elevation)
+	if grid_map != null:
+		return grid_map.map_to_local(cell3i)
+	return Vector3(cell3i.x, 0, cell3i.z)
 
 
 # ----------------------------------------------------------------------------
@@ -142,6 +162,7 @@ func reset_all_to_yard() -> void:
 	for pawn in all_pawns:
 		pawn.state = PawnState.MAISON
 		pawn.progress = -1
+		pawn.captor_id = -1
 
 
 # ----------------------------------------------------------------------------
@@ -162,3 +183,33 @@ func _yard_world_position(pawn: Dictionary) -> Vector3:
 		push_warning("BoardManager: Marker3D de yard introuvable pour player=%d slot=%d." % [pawn.player, slot])
 		return Vector3.ZERO
 	return marker.position
+
+
+## Position monde d'un pion CAPTURED : lue sur le Marker3D "Player<captor_id>/
+## Slot<n>" sous capture_zones_root — la zone du joueur qui l'a capturé, PAS
+## la sienne. Contrairement au yard, le slot n'est pas déductible de pawn.id
+## (les victimes qui atterrissent dans une zone donnée varient selon la
+## partie) : on compte les pions déjà CAPTURED par le même capteur.
+func _capture_zone_world_position(pawn: Dictionary) -> Vector3:
+	if capture_zones_root == null:
+		push_warning("BoardManager: capture_zones_root non assigné, position de capture = ZERO.")
+		return Vector3.ZERO
+	var slot: int = _resolve_capture_zone_slot(pawn)
+	var marker: Node3D = capture_zones_root.get_node_or_null("Player%d/Slot%d" % [pawn.captor_id, slot])
+	if marker == null:
+		push_warning("BoardManager: Marker3D de capture zone introuvable pour captor=%d slot=%d." % [pawn.captor_id, slot])
+		return Vector3.ZERO
+	return marker.position
+
+
+## Compte les pions déjà CAPTURED avec le même captor_id (hors `pawn` lui-même)
+## pour déterminer le prochain slot libre. 12 slots/zone garantissent qu'il ne
+## déborde jamais (pire cas : les 12 pions adverses).
+func _resolve_capture_zone_slot(pawn: Dictionary) -> int:
+	var count: int = 0
+	for p in all_pawns:
+		if p.id == pawn.id:
+			continue
+		if p.state == PawnState.CAPTURED and p.captor_id == pawn.captor_id:
+			count += 1
+	return count
