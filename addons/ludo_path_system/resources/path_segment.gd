@@ -15,6 +15,7 @@
 ## embranchement) — voir LudoPathDescriptor.rebuild_cache(). Pour un simple
 ## virage d'anneau SANS duplication (le cas standard), utiliser un offset
 ## d'un pas dans la nouvelle direction.
+@tool
 class_name LudoPathSegment
 extends Resource
 

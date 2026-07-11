@@ -5,6 +5,7 @@
 ##
 ## Indépendant de la GridMap : LudoBoardPainter s'en sert pour peindre une
 ## GridMap, mais ce Resource n'a lui-même aucune dépendance sur GridMap/Node.
+@tool
 class_name LudoBoardLayout
 extends Resource
 

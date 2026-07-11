@@ -4,6 +4,7 @@
 ## géométrie vient maintenant entièrement des LudoPathDescriptor du layout.
 ##
 ## Fonction pure : ne modifie que la GridMap passée en paramètre.
+@tool
 class_name LudoBoardPainter
 extends RefCounted
 

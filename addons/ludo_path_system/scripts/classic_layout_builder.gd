@@ -13,6 +13,7 @@
 ## Chaque bras est ensuite compressé en LudoPathSegment (voir
 ## _build_descriptor_from_cells) : c'est le pont entre "coordonnées bien
 ## comprises case par case" et "représentation compacte par segments".
+@tool
 class_name LudoClassicLayoutBuilder
 extends RefCounted
 
