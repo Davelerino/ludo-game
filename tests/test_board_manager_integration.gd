@@ -10,6 +10,7 @@ extends SceneTree
 func _initialize() -> void:
 	var board_root: Node3D = (load("res://scenes/board/board_root.tscn") as PackedScene).instantiate()
 	var grid_map: GridMap = board_root.get_node("GridMap")
+	var yards_root: Node3D = board_root.get_node("Yards")
 
 	var mesh_lib: MeshLibrary = LudoMeshLibraryFactory.get_or_create_mesh_library()
 	assert(mesh_lib != null, "MeshLibrary ne devrait pas être null.")
@@ -18,20 +19,22 @@ func _initialize() -> void:
 	assert(layout != null, "BoardLayout.tres devrait se charger.")
 	assert(layout.validate().is_empty(), "BoardLayout chargé devrait être valide.")
 
-	LudoBoardPainter.paint(grid_map, mesh_lib, layout)
+	var mesh_mapping := LudoMeshMapping.new()
+	LudoBoardPainter.paint(grid_map, mesh_lib, layout, mesh_mapping)
 	assert(grid_map.get_used_cells().size() > 0, "La GridMap devrait être peuplée après paint().")
 	print("Cellules peintes: ", grid_map.get_used_cells().size())
 
 	var board_manager: BoardManager = BoardManager.new()
 	var cfg: BoardConfig = load("res://resources/BoardConfig.tres")
-	board_manager.setup(cfg, grid_map, layout)
+	board_manager.setup(cfg, grid_map, layout, yards_root)
 	assert(board_manager.validate_board(), "validate_board() devrait réussir avec un plateau peint et un layout valide.")
 
-	# Un pion au yard : doit résoudre une cellule cohérente avec le yard du joueur.
+	# Un pion au yard : doit résoudre la position monde du Marker3D correspondant.
 	var yard_pawn: Dictionary = board_manager.get_pawn_by_id(0)
-	var yard_cell: Vector3i = board_manager.cell_of(yard_pawn)
-	assert(yard_cell == LudoPathMath.to_cell3i(layout.get_yard_cell(0, 0), layout.elevation),
-		"cell_of() d'un pion au yard incohérent avec layout.get_yard_cell().")
+	var yard_world_pos: Vector3 = board_manager.cell_world_position(yard_pawn)
+	var expected_marker: Node3D = yards_root.get_node("Player0/Slot0")
+	assert(yard_world_pos == expected_marker.position,
+		"cell_world_position() d'un pion au yard incohérent avec le Marker3D Player0/Slot0.")
 
 	# Simule une entrée en jeu (progress 0) : doit correspondre à la start tile du joueur.
 	yard_pawn.state = BoardConfig.PawnState.RING

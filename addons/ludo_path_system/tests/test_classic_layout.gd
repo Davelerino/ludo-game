@@ -17,6 +17,7 @@ func _initialize() -> void:
 	test_home_lanes(layout)
 	test_no_overlap(layout)
 	test_player_offsets_match_board_config(layout)
+	test_derive_home_descriptor_in_isolation()
 
 	print("\nTOUS LES TESTS SONT PASSES (test_classic_layout)")
 	quit()
@@ -77,3 +78,24 @@ func test_player_offsets_match_board_config(layout: LudoBoardLayout) -> void:
 		# progress 0 doit correspondre exactement à la start tile du joueur sur l'anneau.
 		assert(path.get_position(0) == layout.shared_ring.get_cell(path.ring_entry_index),
 			"progress 0 du joueur %d ne correspond pas à sa start tile sur l'anneau." % player_id)
+
+
+## Vérifie _derive_home_descriptor() en isolation (sans passer par build()) :
+## une direction seule doit reproduire exactement les couloirs finaux
+## attendus (start_position + case finale = centre).
+func test_derive_home_descriptor_in_isolation() -> void:
+	print("-> test_derive_home_descriptor_in_isolation")
+	var cases := [
+		{"direction": Vector2i(0, -1), "expected_start": Vector2i(7, 12)}, # BLUE
+		{"direction": Vector2i(1, 0), "expected_start": Vector2i(2, 7)},   # GREEN
+		{"direction": Vector2i(0, 1), "expected_start": Vector2i(7, 2)},   # RED
+		{"direction": Vector2i(-1, 0), "expected_start": Vector2i(12, 7)}, # YELLOW
+	]
+	for c in cases:
+		var home: LudoPathDescriptor = LudoClassicLayoutBuilder._derive_home_descriptor(c.direction)
+		assert(home.start_position == c.expected_start,
+			"_derive_home_descriptor(%s): start_position attendu %s, obtenu %s." % [c.direction, c.expected_start, home.start_position])
+		assert(home.get_length() == BoardConfig.HOME_LANE_LENGTH,
+			"_derive_home_descriptor(%s): longueur attendue %d." % [c.direction, BoardConfig.HOME_LANE_LENGTH])
+		assert(home.get_cell(BoardConfig.HOME_LANE_LENGTH - 1) == LudoClassicLayoutBuilder.CENTER,
+			"_derive_home_descriptor(%s): dernière case attendue = centre (7,7)." % c.direction)

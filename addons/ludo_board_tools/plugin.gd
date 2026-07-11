@@ -7,8 +7,9 @@ extends EditorPlugin
 ##   - Un dock ("Ludo Board Tools", panneau droit) avec deux boutons.
 ##   - Deux entrées dans le menu Tools : "Generate Ludo Board" / "Clear Board".
 ##
-## "Generate Ludo Board" charge (ou construit) le LudoBoardLayout classique,
-## crée la MeshLibrary si besoin, peuple la GridMap via LudoBoardPainter.
+## "Generate Ludo Board" charge (ou construit) le LudoBoardLayout classique et
+## le LudoMeshMapping (identité visuelle par joueur), crée la MeshLibrary si
+## besoin, peuple la GridMap via LudoBoardPainter.
 ## "Clear Board" vide la GridMap.
 ##
 ## La géométrie vient de addons/ludo_path_system (LudoBoardLayout /
@@ -20,6 +21,7 @@ extends EditorPlugin
 ## ============================================================================
 
 const _LAYOUT_PATH := "res://resources/BoardLayout.tres"
+const _MESH_MAPPING_PATH := "res://resources/LudoMeshMapping.tres"
 
 var _undo_redo: EditorUndoRedoManager
 var _dock: VBoxContainer
@@ -99,8 +101,14 @@ func _do_generate(grid_map: GridMap) -> void:
 		push_error("Ludo Board Tools: impossible de créer la MeshLibrary.")
 		return
 	var layout: LudoBoardLayout = _load_or_build_layout()
+	var mesh_mapping: LudoMeshMapping = _load_or_create_mesh_mapping()
+
+	var mapping_errors: Array[String] = mesh_mapping.validate_against(mesh_lib)
+	if not mapping_errors.is_empty():
+		push_warning("Ludo Board Tools: LudoMeshMapping incohérent avec la MeshLibrary :\n - %s" % "\n - ".join(mapping_errors))
+
 	grid_map.clear()
-	LudoBoardPainter.paint(grid_map, mesh_lib, layout)
+	LudoBoardPainter.paint(grid_map, mesh_lib, layout, mesh_mapping)
 	# Note : commit_action() (appelé par le do/undo qui déclenche cette
 	# méthode) marque déjà la scène comme modifiée — pas besoin d'appeler
 	# quoi que ce soit ici pour ça (Node n'a de toute façon pas de
@@ -127,6 +135,20 @@ func _load_or_build_layout() -> LudoBoardLayout:
 		push_error("Ludo Board Tools: LudoBoardLayout généré invalide :\n - %s" % "\n - ".join(errors))
 	ResourceSaver.save(layout, _LAYOUT_PATH)
 	return layout
+
+
+## Charge res://resources/LudoMeshMapping.tres s'il existe déjà, sinon crée
+## une instance avec les valeurs par défaut (accordées à la LudoMeshLibrary_02
+## actuelle) et la sauvegarde pour que l'utilisateur puisse l'éditer ensuite
+## dans l'Inspecteur (player_start_mesh_id / player_home_lane_mesh_id).
+func _load_or_create_mesh_mapping() -> LudoMeshMapping:
+	if ResourceLoader.exists(_MESH_MAPPING_PATH):
+		var mapping: LudoMeshMapping = load(_MESH_MAPPING_PATH)
+		if mapping != null:
+			return mapping
+	var mapping := LudoMeshMapping.new()
+	ResourceSaver.save(mapping, _MESH_MAPPING_PATH)
+	return mapping
 
 
 func _undo_generate(grid_map: GridMap, old_cells: Array) -> void:

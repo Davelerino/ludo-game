@@ -1,5 +1,6 @@
 ## Construit le LudoBoardLayout du plateau Ludo classique (croix 15x15,
-## anneau de 52 cases, 4 couloirs finaux de 6 cases, 4 yards de 4 cases).
+## anneau de 52 cases, 4 couloirs finaux de 6 cases dérivés directement de
+## l'anneau). Les yards ne font PAS partie de ce layout — voir board_root.tscn.
 ##
 ## GEOMETRIC NOTE (reprise de l'ancien ring_path_generator.gd) : un anneau
 ## Ludo à 4 bras égaux de 13 cases ne peut PAS s'obtenir en tournant un seul
@@ -24,9 +25,9 @@ const CENTER := Vector2i(7, 7)
 static func build() -> LudoBoardLayout:
 	var layout := LudoBoardLayout.new()
 	layout.elevation = 0
-	layout.shared_ring = _build_shared_ring()
-	layout.player_paths = _build_player_paths(layout.shared_ring)
-	layout.yard_positions = _build_yard_positions()
+	var arms := _build_arms()
+	layout.shared_ring = _build_descriptor_from_cells(arms.cells)
+	layout.player_paths = _build_player_paths(layout.shared_ring, arms.home_directions)
 	return layout
 
 
@@ -39,7 +40,12 @@ static func build() -> LudoBoardLayout:
 ## exactement à la numérotation S0/S13/S26/S39 du plateau de référence
 ## (image du GDD) plutôt qu'à un ordre horaire arbitraire à partir du coin
 ## haut-gauche.
-static func _build_shared_ring() -> LudoPathDescriptor:
+##
+## Capture au passage la direction du premier pas de CHAQUE bras : c'est
+## aussi la direction du couloir final de ce joueur (voir
+## _derive_home_descriptor), ce qui évite de maintenir une donnée séparée
+## et déconnectée de la construction de l'anneau.
+static func _build_arms() -> Dictionary:
 	var top_left_arm := _walk(Vector2i(1, 6), [
 		[Vector2i(1, 0), 5],
 		[Vector2i(0, -1), 6],
@@ -63,7 +69,20 @@ static func _build_shared_ring() -> LudoPathDescriptor:
 	all_cells.append_array(top_right_arm)    # index 26..38 : RED   (S26)
 	all_cells.append_array(bottom_right_arm) # index 39..51 : YELLOW (S39)
 
-	return _build_descriptor_from_cells(all_cells)
+	var home_directions: Array[Vector2i] = [
+		_first_direction(bottom_left_arm),   # player 0 (BLUE)
+		_first_direction(top_left_arm),      # player 1 (GREEN)
+		_first_direction(top_right_arm),     # player 2 (RED)
+		_first_direction(bottom_right_arm),  # player 3 (YELLOW)
+	]
+
+	return {"cells": all_cells, "home_directions": home_directions}
+
+
+## Direction du tout premier pas d'un bras (entre ses 2 premières cellules).
+static func _first_direction(arm_cells: Array[Vector2i]) -> Vector2i:
+	assert(arm_cells.size() >= 2, "LudoClassicLayoutBuilder: bras trop court pour en déduire une direction.")
+	return arm_cells[1] - arm_cells[0]
 
 
 ## Marche une séquence de [direction: Vector2i, count: int] à partir de
@@ -122,26 +141,14 @@ static func _build_descriptor_from_cells(cells: Array[Vector2i]) -> LudoPathDesc
 # Couloirs finaux (6 cases par joueur, dernière case = centre partagé (7,7))
 # ============================================================================
 #
-# Chaque couloir longe la ligne médiane (row7 pour RED/YELLOW, col7 pour
-# GREEN/BLUE) en partant 2 cases après la case de transition d'anneau de
-# la couleur PRÉCÉDENTE (pour ne jamais chevaucher l'anneau) et en
-# remontant jusqu'au centre (7,7), partagé intentionnellement par les 4
-# couloirs comme case d'arrivée commune.
+# Chaque couloir est ENTIÈREMENT dérivé de la direction du premier pas du
+# bras d'anneau de ce joueur (voir _derive_home_descriptor) : aucune donnée
+# séparée à maintenir en plus de l'anneau lui-même.
 
-static func _build_player_paths(shared_ring: LudoPathDescriptor) -> Array[LudoPlayerPath]:
-	var home_specs := [
-		[Vector2i(7, 12), Vector2i(0, -1)], # player 0 (BLUE)  : col7,  row décroissant
-		[Vector2i(2, 7), Vector2i(1, 0)],   # player 1 (GREEN) : row7,  col croissant
-		[Vector2i(7, 2), Vector2i(0, 1)],   # player 2 (RED)   : col7,  row croissant
-		[Vector2i(12, 7), Vector2i(-1, 0)], # player 3 (YELLOW): row7,  col décroissant
-	]
-
+static func _build_player_paths(shared_ring: LudoPathDescriptor, home_directions: Array[Vector2i]) -> Array[LudoPlayerPath]:
 	var paths: Array[LudoPlayerPath] = []
 	for player_id in range(BoardConfig.PLAYER_COUNT):
-		var home := LudoPathDescriptor.new()
-		home.start_position = home_specs[player_id][0]
-		home.segments = [LudoPathSegment.new(home_specs[player_id][1], BoardConfig.HOME_LANE_LENGTH, Vector2i.ZERO)]
-
+		var home := _derive_home_descriptor(home_directions[player_id])
 		var path := LudoPlayerPath.new()
 		path.setup(shared_ring, BoardConfig.get_player_offset(player_id), BoardConfig.HOME_ENTRY_PROGRESS, home)
 		paths.append(path)
@@ -149,14 +156,13 @@ static func _build_player_paths(shared_ring: LudoPathDescriptor) -> Array[LudoPl
 	return paths
 
 
-# ============================================================================
-# Yards (2x2 par joueur, dans le coin adjacent à son propre bras)
-# ============================================================================
-
-static func _build_yard_positions() -> Array[Array]:
-	return [
-		[Vector2i(1, 12), Vector2i(2, 12), Vector2i(1, 13), Vector2i(2, 13)],   # player 0 (BLUE)  : coin bas-gauche
-		[Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)],       # player 1 (GREEN) : coin haut-gauche
-		[Vector2i(12, 1), Vector2i(13, 1), Vector2i(12, 2), Vector2i(13, 2)],   # player 2 (RED)   : coin haut-droit
-		[Vector2i(12, 12), Vector2i(13, 12), Vector2i(12, 13), Vector2i(13, 13)], # player 3 (YELLOW): coin bas-droit
-	]
+## Dérive le couloir final d'un joueur à partir de la SEULE direction de son
+## bras d'anneau : le couloir remonte vers CENTER dans cette même direction,
+## et sa DERNIÈRE case (index HOME_LANE_LENGTH-1) tombe exactement sur
+## CENTER -> start_position = CENTER - (HOME_LANE_LENGTH-1) * direction.
+## Fonction pure et testable en isolation (aucune dépendance sur l'anneau).
+static func _derive_home_descriptor(direction: Vector2i) -> LudoPathDescriptor:
+	var home := LudoPathDescriptor.new()
+	home.start_position = CENTER - direction * (BoardConfig.HOME_LANE_LENGTH - 1)
+	home.segments = [LudoPathSegment.new(direction, BoardConfig.HOME_LANE_LENGTH, Vector2i.ZERO)]
+	return home
