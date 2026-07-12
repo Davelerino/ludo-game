@@ -1,9 +1,10 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://cydj7sfjiocdm"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cydj7sfjiocdm"]
 
-[ext_resource type="Shader" path="res://shaders/stylized_toon.gdshader" id="1_shader"]
-[ext_resource type="Material" path="res://materials/toon_outline_default.tres" id="2_outline"]
+[ext_resource type="Shader" uid="uid://chfr5bocyiyud" path="res://shaders/stylized_toon.gdshader" id="1_shader"]
+[ext_resource type="Material" uid="uid://c361igdkfg7tv" path="res://materials/toon_outline_default.tres" id="2_outline"]
 
 [resource]
+render_priority = 1
 next_pass = ExtResource("2_outline")
 shader = ExtResource("1_shader")
 shader_parameter/albedo_color = Color(0.90588236, 0.76862746, 0, 1)

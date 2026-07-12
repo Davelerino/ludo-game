@@ -1,8 +1,9 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://c361igdkfg7tv"]
 
-[ext_resource type="Shader" path="res://shaders/toon_outline.gdshader" id="1_outline"]
+[ext_resource type="Shader" uid="uid://bt6mbfpam6h7u" path="res://shaders/toon_outline.gdshader" id="1_outline"]
 
 [resource]
+render_priority = 0
 shader = ExtResource("1_outline")
 shader_parameter/outline_color = Color(0.05, 0.05, 0.08, 1)
-shader_parameter/outline_width = 0.012
+shader_parameter/outline_width = 0.0070000003325
