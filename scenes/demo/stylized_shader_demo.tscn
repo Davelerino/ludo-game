@@ -1,9 +1,9 @@
 [gd_scene load_steps=8 format=3 uid="uid://c8w1demo0stylized"]
 
-[ext_resource type="Material" path="res://materials/stylized_toon_rouge.tres" id="1_rouge"]
-[ext_resource type="Material" path="res://materials/stylized_toon_bleu.tres" id="2_bleu"]
-[ext_resource type="Material" path="res://materials/stylized_toon_vert.tres" id="3_vert"]
-[ext_resource type="Material" path="res://materials/stylized_toon_jaune.tres" id="4_jaune"]
+[ext_resource type="Material" path="res://resources/Red_mat.tres" id="1_rouge"]
+[ext_resource type="Material" path="res://resources/Blue_mat.tres" id="2_bleu"]
+[ext_resource type="Material" path="res://resources/Green_mat.tres" id="3_vert"]
+[ext_resource type="Material" path="res://resources/Yellow_mat.tres" id="4_jaune"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_1"]
 radius = 0.5

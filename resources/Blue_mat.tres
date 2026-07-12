@@ -1,4 +1,16 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://c67x2ycn8cph2"]
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://c67x2ycn8cph2"]
+
+[ext_resource type="Shader" path="res://shaders/stylized_toon.gdshader" id="1_shader"]
+[ext_resource type="Material" path="res://materials/toon_outline_default.tres" id="2_outline"]
 
 [resource]
-albedo_color = Color(0, 0.5294118, 0.90588236, 1)
+next_pass = ExtResource("2_outline")
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0, 0.5294118, 0.90588236, 1)
+shader_parameter/band_count = 3
+shader_parameter/shadow_color = Color(0.35, 0.37, 0.5, 1)
+shader_parameter/rim_color = Color(1, 1, 1, 1)
+shader_parameter/rim_amount = 0.4
+shader_parameter/rim_threshold = 0.7
+shader_parameter/specular_size = 32.0
+shader_parameter/specular_intensity = 0.35
