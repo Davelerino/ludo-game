@@ -49,6 +49,10 @@ end_turn={
 ]
 }
 
+[layer_names]
+
+3d_physics/layer_2="Pawns"
+
 [rendering]
 
 anti_aliasing/quality/msaa_3d=2
