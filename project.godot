@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Godo Ludo 3D"
 config/description="Plateau de Ludo 3D (GridMap) avec RuleEngine réutilisé, machine à tours §9 et bus de signaux §11.2."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
