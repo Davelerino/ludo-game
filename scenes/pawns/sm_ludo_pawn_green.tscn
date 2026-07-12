@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cle2bbfnbnb4v"]
+
+[ext_resource type="PackedScene" uid="uid://cf2ldok2jgkt" path="res://assets/meshes/SM_Ludo_Pawn.glb" id="1_bk1qu"]
+[ext_resource type="Material" uid="uid://8msi0jutv4dc" path="res://resources/Green_mat.tres" id="2_6ft0l"]
+
+[node name="SM_Ludo_Pawn" unique_id=294143086 instance=ExtResource("1_bk1qu")]
+
+[node name="Vert_013" parent="." index="0" unique_id=1545900945]
+surface_material_override/0 = ExtResource("2_6ft0l")

@@ -1,6 +1,80 @@
-[gd_scene format=3 uid="uid://bq7iquxbi1dbn"]
+[gd_scene format=4 uid="uid://bq7iquxbi1dbn"]
 
 [ext_resource type="MeshLibrary" uid="uid://diqdwcvhuuasl" path="res://resources/LudoMeshLibrary_02.tres" id="1_dwwww"]
+[ext_resource type="PackedScene" uid="uid://cad6lfq5coax5" path="res://scenes/pawns/sm_ludo_pawn_blue.tscn" id="2_no7h5"]
+[ext_resource type="PackedScene" uid="uid://cle2bbfnbnb4v" path="res://scenes/pawns/sm_ludo_pawn_green.tscn" id="3_rxyim"]
+[ext_resource type="PackedScene" uid="uid://bfn3bysflnbrx" path="res://scenes/pawns/sm_ludo_pawn_red.tscn" id="4_qwpi7"]
+[ext_resource type="PackedScene" uid="uid://cboch3untgwa2" path="res://scenes/pawns/sm_ludo_pawn_yellow.tscn" id="5_74eac"]
+[ext_resource type="Material" uid="uid://c67x2ycn8cph2" path="res://resources/Blue_mat.tres" id="6_8rhok"]
+[ext_resource type="Material" uid="uid://cydj7sfjiocdm" path="res://resources/Yellow_mat.tres" id="7_jtftv"]
+[ext_resource type="Material" uid="uid://iqov6u1rn5x0" path="res://resources/Red_mat.tres" id="8_mpf56"]
+[ext_resource type="Material" uid="uid://8msi0jutv4dc" path="res://resources/Green_mat.tres" id="9_fmkj7"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p4hbe"]
+resource_name = "Neutral"
+cull_mode = 2
+albedo_color = Color(0.9063318, 0.9063318, 0.9063318, 1)
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hqiac"]
+resource_name = "Team_01"
+cull_mode = 2
+albedo_color = Color(0.9064733, 0.7684866, 0, 1)
+roughness = 0.5
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_av01y"]
+_surfaces = [{
+"aabb": AABB(-0.4351051, -1.490116e-09, -0.4351051, 0.8702102, 1e-05, 0.8702102),
+"format": 34896613377,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAAADAAEA"),
+"name": "Neutral",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("//8AAAAAAAAAAAAA//8AAAAAAAAAAAAA//8AAP//AAA=")
+}, {
+"aabb": AABB(-0.59999996, -0.039999995, -0.59999996, 1.1999999, 0.039999995, 1.1999999),
+"format": 34896613377,
+"index_count": 54,
+"index_data": PackedByteArray("AAABAAIAAwACAAEABAACAAMAAwABAAUABAAGAAIABwAGAAQACAAAAAIACAACAAYABQAJAAcABQABAAkABwAJAAYAAAAKAAEACgAAAAgACgAJAAEACwAIAAYACgAIAAsACwAGAAkACgALAAkA"),
+"name": "Team_01",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("AAAAAP//AAAAAP//AAAAAAAA/////wAALSP//9HcAADR3P//0dwAAC0j//8tIwAA////////AADR3P//LSMAAP//AAD//wAA/////wAAAAAAAAAAAAAAAP//AAAAAAAA")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_mxcdh"]
+resource_name = "SM_Ludo_Home_Cube_002"
+_surfaces = [{
+"aabb": AABB(-0.4351051, -1.490116e-09, -0.4351051, 0.8702102, 1e-05, 0.8702102),
+"attribute_data": PackedByteArray("yqg0dzPXy0gz1zR3yqjLSA=="),
+"format": 34896613399,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAAADAAEA"),
+"material": SubResource("StandardMaterial3D_p4hbe"),
+"name": "Neutral",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("//8AAAAA//8AAAAA/////wAAAAAAAP////8AAP//////f/+//3//v/9//7//f/+/")
+}, {
+"aabb": AABB(-0.59999996, -0.039999995, -0.59999996, 1.1999999, 0.039999995, 1.1999999),
+"attribute_data": PackedByteArray("/1////+f/7//n////1//v/9f/7//n/9//5//v/9f/3//X/9//5//P/+f/3//X/8//1//P/+fAAD/n/8//18AAP8f/3//X/8//1//f/8f/z8z18tI/9//fzPXNHf/n/9//9//P8qoNHfKqMtI/5//Pw=="),
+"format": 34896613399,
+"index_count": 54,
+"index_data": PackedByteArray("AAABAAIAAAADAAEABAAFAAYABAAHAAUACAAJAAoACAALAAkADAANAA4ADAAPAA0AEAARABIAEAATABEAFAAVABYAFgAVABcAFAAYABUAFgAXABkAGgAYABQAGQAXABsAGgAbABgAGQAbABoA"),
+"material": SubResource("StandardMaterial3D_hqiac"),
+"name": "Team_01",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 28,
+"vertex_data": PackedByteArray("AAAAAP//VNUAAP//AABU1QAA/////1TVAAAAAAAAVNUAAAAAAAD///////8AAP//AAD//wAA/////wAAAAD/////AAAAAFTV////////VNX/////AABU1f//AAD//1TV//8AAP///78AAP//////v/////////+/AAAAAP///78AAAAAAAD/v///AAD///+///8AAAAA/78AAAAA////vy0j///R3P//AAD//wAA//8tI///LSP///////8AAP//AAD////////R3P//LSP//9Hc///R3P////////////9U1VTVVNVU1VTVVNVU1VTV/7//v/+//7//v/+//7//v6oqqiqqKqoqqiqqKqoqqir/////////////////////AAD/fwAA/38AAP9/AAD/f/9//7//f/+//3//v/9//7//f/+//3//v/9//7//f/+/")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_av01y")
 
 [node name="BoardRoot" type="Node3D" unique_id=1237762606]
 
@@ -8,12 +82,9 @@
 mesh_library = ExtResource("1_dwwww")
 cell_size = Vector3(0.2, 0.2, 0.2)
 cell_center_y = false
-cell_scale = 0.813
 data = {
 "cells": PackedInt32Array(6, 13, 3, 6, 12, 0, 6, 11, 0, 6, 10, 0, 6, 9, 0, 5, 8, 0, 4, 8, 0, 3, 8, 0, 2, 8, 0, 1, 8, 0, 0, 8, 0, 0, 7, 0, 0, 6, 0, 1, 6, 2, 2, 6, 0, 3, 6, 0, 4, 6, 0, 5, 6, 0, 6, 5, 0, 6, 4, 0, 6, 3, 0, 6, 2, 0, 6, 1, 0, 6, 0, 0, 7, 0, 0, 8, 0, 0, 8, 1, 1, 8, 2, 0, 8, 3, 0, 8, 4, 0, 8, 5, 0, 9, 6, 0, 10, 6, 0, 11, 6, 0, 12, 6, 0, 13, 6, 0, 14, 6, 0, 14, 7, 0, 14, 8, 0, 13, 8, 4, 12, 8, 0, 11, 8, 0, 10, 8, 0, 9, 8, 0, 8, 9, 0, 8, 10, 0, 8, 11, 0, 8, 12, 0, 8, 13, 0, 8, 14, 0, 7, 14, 0, 6, 14, 0, 7, 13, 3, 7, 12, 3, 7, 11, 3, 7, 10, 3, 7, 9, 3, 7, 8, 0, 1, 7, 2, 2, 7, 2, 3, 7, 2, 4, 7, 2, 5, 7, 2, 6, 7, 0, 7, 1, 1, 7, 2, 1, 7, 3, 1, 7, 4, 1, 7, 5, 1, 7, 6, 0, 13, 7, 4, 12, 7, 4, 11, 7, 4, 10, 7, 4, 9, 7, 4, 8, 7, 0)
 }
-
-[node name="RingDecor" type="Node3D" parent="." unique_id=1571356788]
 
 [node name="PawnContainer" type="Node3D" parent="." unique_id=842168198]
 
@@ -24,168 +95,264 @@ data = {
 [node name="Slot0" type="Marker3D" parent="Yards/Player0" unique_id=1088575686]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 2.4)
 
+[node name="SM_Ludo_Pawn" parent="Yards/Player0/Slot0" unique_id=294143086 instance=ExtResource("2_no7h5")]
+
 [node name="Slot1" type="Marker3D" parent="Yards/Player0" unique_id=1444065607]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 2.4)
+
+[node name="SM_Ludo_Pawn2" parent="Yards/Player0/Slot1" unique_id=662232171 instance=ExtResource("2_no7h5")]
 
 [node name="Slot2" type="Marker3D" parent="Yards/Player0" unique_id=921328987]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 2.6)
 
+[node name="SM_Ludo_Pawn3" parent="Yards/Player0/Slot2" unique_id=2014053144 instance=ExtResource("2_no7h5")]
+
 [node name="Slot3" type="Marker3D" parent="Yards/Player0" unique_id=1349972968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 2.6)
+
+[node name="SM_Ludo_Pawn4" parent="Yards/Player0/Slot3" unique_id=1992604190 instance=ExtResource("2_no7h5")]
 
 [node name="Player1" type="Node3D" parent="Yards" unique_id=807845038]
 
 [node name="Slot0" type="Marker3D" parent="Yards/Player1" unique_id=942356523]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 0.2)
 
+[node name="SM_Ludo_Pawn" parent="Yards/Player1/Slot0" unique_id=368401158 instance=ExtResource("3_rxyim")]
+
 [node name="Slot1" type="Marker3D" parent="Yards/Player1" unique_id=1297034379]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 0.2)
+
+[node name="SM_Ludo_Pawn2" parent="Yards/Player1/Slot1" unique_id=1132258468 instance=ExtResource("3_rxyim")]
 
 [node name="Slot2" type="Marker3D" parent="Yards/Player1" unique_id=1434136204]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 0.4)
 
+[node name="SM_Ludo_Pawn3" parent="Yards/Player1/Slot2" unique_id=858247789 instance=ExtResource("3_rxyim")]
+
 [node name="Slot3" type="Marker3D" parent="Yards/Player1" unique_id=848348702]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 0.4)
+
+[node name="SM_Ludo_Pawn4" parent="Yards/Player1/Slot3" unique_id=1941373477 instance=ExtResource("3_rxyim")]
 
 [node name="Player2" type="Node3D" parent="Yards" unique_id=1696318616]
 
 [node name="Slot0" type="Marker3D" parent="Yards/Player2" unique_id=540260077]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 0.2)
 
+[node name="SM_Ludo_Pawn" parent="Yards/Player2/Slot0" unique_id=258475365 instance=ExtResource("4_qwpi7")]
+
 [node name="Slot1" type="Marker3D" parent="Yards/Player2" unique_id=1468501095]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 0.2)
+
+[node name="SM_Ludo_Pawn2" parent="Yards/Player2/Slot1" unique_id=16919517 instance=ExtResource("4_qwpi7")]
 
 [node name="Slot2" type="Marker3D" parent="Yards/Player2" unique_id=97474326]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 0.4)
 
+[node name="SM_Ludo_Pawn3" parent="Yards/Player2/Slot2" unique_id=35791077 instance=ExtResource("4_qwpi7")]
+
 [node name="Slot3" type="Marker3D" parent="Yards/Player2" unique_id=242613474]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 0.4)
+
+[node name="SM_Ludo_Pawn4" parent="Yards/Player2/Slot3" unique_id=1353347224 instance=ExtResource("4_qwpi7")]
 
 [node name="Player3" type="Node3D" parent="Yards" unique_id=1008312768]
 
 [node name="Slot0" type="Marker3D" parent="Yards/Player3" unique_id=567122502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 2.4)
 
+[node name="SM_Ludo_Pawn" parent="Yards/Player3/Slot0" unique_id=1960046777 instance=ExtResource("5_74eac")]
+
 [node name="Slot1" type="Marker3D" parent="Yards/Player3" unique_id=1103444050]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 2.4)
+
+[node name="SM_Ludo_Pawn2" parent="Yards/Player3/Slot1" unique_id=1270528008 instance=ExtResource("5_74eac")]
 
 [node name="Slot2" type="Marker3D" parent="Yards/Player3" unique_id=1566947531]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 2.6)
 
+[node name="SM_Ludo_Pawn3" parent="Yards/Player3/Slot2" unique_id=483534228 instance=ExtResource("5_74eac")]
+
 [node name="Slot3" type="Marker3D" parent="Yards/Player3" unique_id=423028502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 2.6)
 
-[node name="CaptureZones" type="Node3D" parent="."]
+[node name="SM_Ludo_Pawn4" parent="Yards/Player3/Slot3" unique_id=149109231 instance=ExtResource("5_74eac")]
 
-[node name="Player0" type="Node3D" parent="CaptureZones"]
+[node name="CaptureZones" type="Node3D" parent="." unique_id=890517185]
 
-[node name="Slot0" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.0, 0, 3.0)
-[node name="Slot1" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.2, 0, 3.0)
-[node name="Slot2" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.4, 0, 3.0)
-[node name="Slot3" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.0, 0, 3.2)
-[node name="Slot4" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.2, 0, 3.2)
-[node name="Slot5" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.4, 0, 3.2)
-[node name="Slot6" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.0, 0, 3.4)
-[node name="Slot7" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.2, 0, 3.4)
-[node name="Slot8" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.4, 0, 3.4)
-[node name="Slot9" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.0, 0, 3.6)
-[node name="Slot10" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.2, 0, 3.6)
-[node name="Slot11" type="Marker3D" parent="CaptureZones/Player0"]
-position = Vector3(0.4, 0, 3.6)
+[node name="Player0" type="Node3D" parent="CaptureZones" unique_id=860680377]
 
-[node name="Player1" type="Node3D" parent="CaptureZones"]
+[node name="Slot0" type="Marker3D" parent="CaptureZones/Player0" unique_id=1709528621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 
-[node name="Slot0" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.0, 0, -1.6)
-[node name="Slot1" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.2, 0, -1.6)
-[node name="Slot2" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.4, 0, -1.6)
-[node name="Slot3" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.0, 0, -1.4)
-[node name="Slot4" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.2, 0, -1.4)
-[node name="Slot5" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.4, 0, -1.4)
-[node name="Slot6" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.0, 0, -1.2)
-[node name="Slot7" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.2, 0, -1.2)
-[node name="Slot8" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.4, 0, -1.2)
-[node name="Slot9" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.0, 0, -1.0)
-[node name="Slot10" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.2, 0, -1.0)
-[node name="Slot11" type="Marker3D" parent="CaptureZones/Player1"]
-position = Vector3(0.4, 0, -1.0)
+[node name="Slot1" type="Marker3D" parent="CaptureZones/Player0" unique_id=2004568364]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 3)
 
-[node name="Player2" type="Node3D" parent="CaptureZones"]
+[node name="Slot2" type="Marker3D" parent="CaptureZones/Player0" unique_id=951577217]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 3)
 
-[node name="Slot0" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.4, 0, -1.6)
-[node name="Slot1" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.6, 0, -1.6)
-[node name="Slot2" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.8, 0, -1.6)
-[node name="Slot3" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.4, 0, -1.4)
-[node name="Slot4" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.6, 0, -1.4)
-[node name="Slot5" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.8, 0, -1.4)
-[node name="Slot6" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.4, 0, -1.2)
-[node name="Slot7" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.6, 0, -1.2)
-[node name="Slot8" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.8, 0, -1.2)
-[node name="Slot9" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.4, 0, -1.0)
-[node name="Slot10" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.6, 0, -1.0)
-[node name="Slot11" type="Marker3D" parent="CaptureZones/Player2"]
-position = Vector3(2.8, 0, -1.0)
+[node name="Slot3" type="Marker3D" parent="CaptureZones/Player0" unique_id=1828104618]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.2)
 
-[node name="Player3" type="Node3D" parent="CaptureZones"]
+[node name="Slot4" type="Marker3D" parent="CaptureZones/Player0" unique_id=1126546788]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 3.2)
 
-[node name="Slot0" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.4, 0, 3.0)
-[node name="Slot1" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.6, 0, 3.0)
-[node name="Slot2" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.8, 0, 3.0)
-[node name="Slot3" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.4, 0, 3.2)
-[node name="Slot4" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.6, 0, 3.2)
-[node name="Slot5" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.8, 0, 3.2)
-[node name="Slot6" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.4, 0, 3.4)
-[node name="Slot7" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.6, 0, 3.4)
-[node name="Slot8" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.8, 0, 3.4)
-[node name="Slot9" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.4, 0, 3.6)
-[node name="Slot10" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.6, 0, 3.6)
-[node name="Slot11" type="Marker3D" parent="CaptureZones/Player3"]
-position = Vector3(2.8, 0, 3.6)
+[node name="Slot5" type="Marker3D" parent="CaptureZones/Player0" unique_id=1776149612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 3.2)
+
+[node name="Slot6" type="Marker3D" parent="CaptureZones/Player0" unique_id=1730572598]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.4)
+
+[node name="Slot7" type="Marker3D" parent="CaptureZones/Player0" unique_id=1630560935]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 3.4)
+
+[node name="Slot8" type="Marker3D" parent="CaptureZones/Player0" unique_id=741272145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 3.4)
+
+[node name="Slot9" type="Marker3D" parent="CaptureZones/Player0" unique_id=1550620479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.6)
+
+[node name="Slot10" type="Marker3D" parent="CaptureZones/Player0" unique_id=1785214629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, 3.6)
+
+[node name="Slot11" type="Marker3D" parent="CaptureZones/Player0" unique_id=1523984428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 3.6)
+
+[node name="Player1" type="Node3D" parent="CaptureZones" unique_id=325448098]
+
+[node name="Slot0" type="Marker3D" parent="CaptureZones/Player1" unique_id=440048985]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.6)
+
+[node name="Slot1" type="Marker3D" parent="CaptureZones/Player1" unique_id=866969569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, -1.6)
+
+[node name="Slot2" type="Marker3D" parent="CaptureZones/Player1" unique_id=1179065005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -1.6)
+
+[node name="Slot3" type="Marker3D" parent="CaptureZones/Player1" unique_id=1425653796]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.4)
+
+[node name="Slot4" type="Marker3D" parent="CaptureZones/Player1" unique_id=155293300]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, -1.4)
+
+[node name="Slot5" type="Marker3D" parent="CaptureZones/Player1" unique_id=1158516615]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -1.4)
+
+[node name="Slot6" type="Marker3D" parent="CaptureZones/Player1" unique_id=1514966060]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.2)
+
+[node name="Slot7" type="Marker3D" parent="CaptureZones/Player1" unique_id=1721326124]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, -1.2)
+
+[node name="Slot8" type="Marker3D" parent="CaptureZones/Player1" unique_id=389942314]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -1.2)
+
+[node name="Slot9" type="Marker3D" parent="CaptureZones/Player1" unique_id=789423103]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
+
+[node name="Slot10" type="Marker3D" parent="CaptureZones/Player1" unique_id=1243468946]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, -1)
+
+[node name="Slot11" type="Marker3D" parent="CaptureZones/Player1" unique_id=743738354]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -1)
+
+[node name="Player2" type="Node3D" parent="CaptureZones" unique_id=1087502788]
+
+[node name="Slot0" type="Marker3D" parent="CaptureZones/Player2" unique_id=406373732]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, -1.6)
+
+[node name="Slot1" type="Marker3D" parent="CaptureZones/Player2" unique_id=2061782703]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, -1.6)
+
+[node name="Slot2" type="Marker3D" parent="CaptureZones/Player2" unique_id=429129870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, -1.6)
+
+[node name="Slot3" type="Marker3D" parent="CaptureZones/Player2" unique_id=587384105]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, -1.4)
+
+[node name="Slot4" type="Marker3D" parent="CaptureZones/Player2" unique_id=2110497534]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, -1.4)
+
+[node name="Slot5" type="Marker3D" parent="CaptureZones/Player2" unique_id=807712069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, -1.4)
+
+[node name="Slot6" type="Marker3D" parent="CaptureZones/Player2" unique_id=1569741001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, -1.2)
+
+[node name="Slot7" type="Marker3D" parent="CaptureZones/Player2" unique_id=938679412]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, -1.2)
+
+[node name="Slot8" type="Marker3D" parent="CaptureZones/Player2" unique_id=1296501027]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, -1.2)
+
+[node name="Slot9" type="Marker3D" parent="CaptureZones/Player2" unique_id=1155861784]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, -1)
+
+[node name="Slot10" type="Marker3D" parent="CaptureZones/Player2" unique_id=315883722]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, -1)
+
+[node name="Slot11" type="Marker3D" parent="CaptureZones/Player2" unique_id=1759719003]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, -1)
+
+[node name="Player3" type="Node3D" parent="CaptureZones" unique_id=1968216550]
+
+[node name="Slot0" type="Marker3D" parent="CaptureZones/Player3" unique_id=2137046133]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 3)
+
+[node name="Slot1" type="Marker3D" parent="CaptureZones/Player3" unique_id=988352620]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 3)
+
+[node name="Slot2" type="Marker3D" parent="CaptureZones/Player3" unique_id=2102600093]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, 3)
+
+[node name="Slot3" type="Marker3D" parent="CaptureZones/Player3" unique_id=397707978]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 3.2)
+
+[node name="Slot4" type="Marker3D" parent="CaptureZones/Player3" unique_id=1843529001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 3.2)
+
+[node name="Slot5" type="Marker3D" parent="CaptureZones/Player3" unique_id=368620015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, 3.2)
+
+[node name="Slot6" type="Marker3D" parent="CaptureZones/Player3" unique_id=1840804639]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 3.4)
+
+[node name="Slot7" type="Marker3D" parent="CaptureZones/Player3" unique_id=2098514557]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 3.4)
+
+[node name="Slot8" type="Marker3D" parent="CaptureZones/Player3" unique_id=567476181]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, 3.4)
+
+[node name="Slot9" type="Marker3D" parent="CaptureZones/Player3" unique_id=1121358055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 3.6)
+
+[node name="Slot10" type="Marker3D" parent="CaptureZones/Player3" unique_id=1460596188]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 3.6)
+
+[node name="Slot11" type="Marker3D" parent="CaptureZones/Player3" unique_id=567944280]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, 3.6)
 
 [node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=13569127]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5453119, 6.947077, 0.91634583)
 light_energy = 8.921
 omni_range = 12.921703
+
+[node name="SM_Ludo_Home" type="MeshInstance3D" parent="." unique_id=683323759]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 2.4)
+mesh = SubResource("ArrayMesh_mxcdh")
+surface_material_override/1 = ExtResource("6_8rhok")
+
+[node name="SM_Ludo_Home2" type="MeshInstance3D" parent="." unique_id=1845081080]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 2.4)
+mesh = SubResource("ArrayMesh_mxcdh")
+surface_material_override/1 = ExtResource("7_jtftv")
+
+[node name="SM_Ludo_Home3" type="MeshInstance3D" parent="." unique_id=1950765390]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 0.6)
+mesh = SubResource("ArrayMesh_mxcdh")
+surface_material_override/1 = ExtResource("8_mpf56")
+
+[node name="SM_Ludo_Home4" type="MeshInstance3D" parent="." unique_id=36713261]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 0.6)
+mesh = SubResource("ArrayMesh_mxcdh")
+surface_material_override/1 = ExtResource("9_fmkj7")

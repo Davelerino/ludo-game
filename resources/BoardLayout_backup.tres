@@ -1,0 +1,156 @@
+[gd_resource type="Resource" script_class="LudoBoardLayout" format=3 uid="uid://dgq5wcx7fjnan"]
+
+[ext_resource type="Script" uid="uid://dajbbe272owbq" path="res://addons/ludo_path_system/resources/player_path.gd" id="1_0hc7g"]
+[ext_resource type="Script" uid="uid://22e7c5gv3qyo" path="res://addons/ludo_path_system/resources/path_descriptor.gd" id="2_y4jpd"]
+[ext_resource type="Script" uid="uid://cger7p5gwnps7" path="res://addons/ludo_path_system/resources/path_segment.gd" id="3_sev46"]
+[ext_resource type="Script" uid="uid://bnalqkbu6lqj3" path="res://addons/ludo_path_system/resources/board_layout.gd" id="4_tp0vk"]
+
+[sub_resource type="Resource" id="Resource_k64b6"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, -1)
+length = 6
+
+[sub_resource type="Resource" id="Resource_1hcqd"]
+script = ExtResource("2_y4jpd")
+start_position = Vector2i(7, 13)
+segments = Array[ExtResource("3_sev46")]([SubResource("Resource_k64b6")])
+
+[sub_resource type="Resource" id="Resource_bs64a"]
+script = ExtResource("1_0hc7g")
+home_path = SubResource("Resource_1hcqd")
+
+[sub_resource type="Resource" id="Resource_2nhrl"]
+script = ExtResource("3_sev46")
+direction = Vector2i(1, 0)
+length = 6
+
+[sub_resource type="Resource" id="Resource_vnrkg"]
+script = ExtResource("2_y4jpd")
+start_position = Vector2i(1, 7)
+segments = Array[ExtResource("3_sev46")]([SubResource("Resource_2nhrl")])
+
+[sub_resource type="Resource" id="Resource_p01wy"]
+script = ExtResource("1_0hc7g")
+ring_entry_index = 13
+home_path = SubResource("Resource_vnrkg")
+
+[sub_resource type="Resource" id="Resource_38dcd"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, 1)
+length = 6
+
+[sub_resource type="Resource" id="Resource_mox8i"]
+script = ExtResource("2_y4jpd")
+start_position = Vector2i(7, 1)
+segments = Array[ExtResource("3_sev46")]([SubResource("Resource_38dcd")])
+
+[sub_resource type="Resource" id="Resource_y5muh"]
+script = ExtResource("1_0hc7g")
+ring_entry_index = 26
+home_path = SubResource("Resource_mox8i")
+
+[sub_resource type="Resource" id="Resource_2rgxj"]
+script = ExtResource("3_sev46")
+direction = Vector2i(-1, 0)
+length = 6
+
+[sub_resource type="Resource" id="Resource_v1yj8"]
+script = ExtResource("2_y4jpd")
+start_position = Vector2i(13, 7)
+segments = Array[ExtResource("3_sev46")]([SubResource("Resource_2rgxj")])
+
+[sub_resource type="Resource" id="Resource_sv1rn"]
+script = ExtResource("1_0hc7g")
+ring_entry_index = 39
+home_path = SubResource("Resource_v1yj8")
+
+[sub_resource type="Resource" id="Resource_hnd7p"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, -1)
+length = 5
+
+[sub_resource type="Resource" id="Resource_d4b8b"]
+script = ExtResource("3_sev46")
+direction = Vector2i(-1, 0)
+length = 6
+offset = Vector2i(-1, -1)
+
+[sub_resource type="Resource" id="Resource_6on6k"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, -1)
+length = 2
+offset = Vector2i(0, -1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_ouhvx"]
+script = ExtResource("3_sev46")
+direction = Vector2i(1, 0)
+length = 5
+offset = Vector2i(1, 0)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_ur6l7"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, -1)
+length = 6
+offset = Vector2i(1, -1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_q7tel"]
+script = ExtResource("3_sev46")
+direction = Vector2i(1, 0)
+length = 2
+offset = Vector2i(1, 0)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_w6iow"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, 1)
+length = 5
+offset = Vector2i(0, 1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_po7p1"]
+script = ExtResource("3_sev46")
+direction = Vector2i(1, 0)
+length = 6
+offset = Vector2i(1, 1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_ebfwl"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, 1)
+length = 2
+offset = Vector2i(0, 1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_7xa6c"]
+script = ExtResource("3_sev46")
+direction = Vector2i(-1, 0)
+length = 5
+offset = Vector2i(-1, 0)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_rm1d6"]
+script = ExtResource("3_sev46")
+direction = Vector2i(0, 1)
+length = 6
+offset = Vector2i(-1, 1)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_xl7c4"]
+script = ExtResource("3_sev46")
+direction = Vector2i(-1, 0)
+length = 2
+offset = Vector2i(-1, 0)
+metadata/_custom_type_script = "uid://cger7p5gwnps7"
+
+[sub_resource type="Resource" id="Resource_youdm"]
+script = ExtResource("2_y4jpd")
+start_position = Vector2i(6, 13)
+segments = Array[ExtResource("3_sev46")]([SubResource("Resource_hnd7p"), SubResource("Resource_d4b8b"), SubResource("Resource_6on6k"), SubResource("Resource_ouhvx"), SubResource("Resource_ur6l7"), SubResource("Resource_q7tel"), SubResource("Resource_w6iow"), SubResource("Resource_po7p1"), SubResource("Resource_ebfwl"), SubResource("Resource_7xa6c"), SubResource("Resource_rm1d6"), SubResource("Resource_xl7c4")])
+
+[resource]
+script = ExtResource("4_tp0vk")
+shared_ring = SubResource("Resource_youdm")
+player_paths = Array[ExtResource("1_0hc7g")]([SubResource("Resource_bs64a"), SubResource("Resource_p01wy"), SubResource("Resource_y5muh"), SubResource("Resource_sv1rn")])

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://oxlv5j8lk5vc"
-path="res://.godot/imported/SM_Ludo_HomePath.glb-681fbc5e300515728331ad514022748c.scn"
+uid="uid://cf2ldok2jgkt"
+path="res://.godot/imported/SM_Ludo_Pawn.glb-93855b713a3d42663cb2f44d73e55fe5.scn"
 
 [deps]
 
-source_file="res://assets/meshes/SM_Ludo_HomePath.glb"
-dest_files=["res://.godot/imported/SM_Ludo_HomePath.glb-681fbc5e300515728331ad514022748c.scn"]
+source_file="res://assets/meshes/SM_Ludo_Pawn.glb"
+dest_files=["res://.godot/imported/SM_Ludo_Pawn.glb-93855b713a3d42663cb2f44d73e55fe5.scn"]
 
 [params]
 
