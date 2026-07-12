@@ -10,13 +10,33 @@
 [ext_resource type="Script" uid="uid://sjx8y1q31i7e" path="res://scripts/core/dice_system.gd" id="8_dice"]
 [ext_resource type="Resource" uid="uid://rbio3kc8gxrn" path="res://resources/BoardConfig.tres" id="9_cfg"]
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_85g3d"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_choun"]
+sky_material = SubResource("ProceduralSkyMaterial_85g3d")
+
+[sub_resource type="Environment" id="Environment_ya4ey"]
+background_mode = 1
+background_color = Color(1.504086e-08, 0.062356256, 0.11675442, 1)
+sky = SubResource("Sky_choun")
+tonemap_mode = 2
+glow_enabled = true
+
 [node name="Main" type="Node3D" unique_id=528590329]
 script = ExtResource("1_main")
 
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=856891274]
+environment = SubResource("Environment_ya4ey")
+
 [node name="BoardRoot" parent="." unique_id=1041812861 instance=ExtResource("2_board")]
 
-[node name="CameraRig" type="Node3D" parent="." unique_id=229596424]
+[node name="CameraRig" type="Node3D" parent="." unique_id=229596424 node_paths=PackedStringArray("target")]
 script = ExtResource("3_cam")
+target = NodePath("../Marker3D")
+min_distance = 2.0
+default_distance = 2.0
 
 [node name="AudioManager" type="Node" parent="." unique_id=296689920]
 script = ExtResource("4_audio")
@@ -35,3 +55,6 @@ board_manager = NodePath("../BoardManager")
 
 [node name="DiceSystem" type="Node" parent="GameRoot" unique_id=1798746037]
 script = ExtResource("8_dice")
+
+[node name="Marker3D" type="Marker3D" parent="." unique_id=901361531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 1.5)

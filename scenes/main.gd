@@ -30,13 +30,17 @@ func _ready() -> void:
 	#    par le plugin "Ludo Board Tools" (Tools > Generate Ludo Board → Ctrl+S).
 	var cfg: BoardConfig = load("res://resources/BoardConfig.tres")
 	var layout: LudoBoardLayout = load("res://resources/BoardLayout.tres")
-	board_manager.setup(cfg, board_root.get_node("GridMap"), layout, board_root.get_node("Yards"))
+	board_manager.setup(
+		cfg, board_root.get_node("GridMap"), layout,
+		board_root.get_node("Yards"), board_root.get_node("CaptureZones")
+	)
 
 	# 2. Vérifie que le plateau a bien été cuit (warning si vide, pas fatal).
 	board_manager.validate_board()
 
 	# 3. Instancie les pions visuels.
 	pawn_controller.board_manager = board_manager
+	pawn_controller.board_tuning = load("res://resources/BoardTuning.tres")
 	pawn_controller.setup(board_manager.all_pawns)
 
 	# 4. Branche le TurnManager (autoload singleton) avec ses dépendances.
