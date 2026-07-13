@@ -41,6 +41,13 @@ func _on_roll_pressed() -> void:
 		turn_manager.request_roll()
 
 
+## Raccourci clavier (action "roll_dice", touche D) : même effet que le clic
+## sur le bouton, soumis à la même garde (désactivé hors WAITING_FOR_ROLL).
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("roll_dice") and not _roll_button.disabled:
+		_on_roll_pressed()
+
+
 func _on_dice_rolled(a: int, b: int, _is_double: bool) -> void:
 	_label.text = "Dés : %d / %d" % [a, b]
 
