@@ -48,6 +48,12 @@ func _build() -> void:
 	_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_log.bbcode_enabled = true
 	_log.scroll_following = true
+	# RichTextLabel a mouse_filter=STOP par défaut (contrairement à Label) pour
+	# permettre la sélection de texte / les liens BBCode. Ce journal n'en a pas
+	# besoin, et son rect s'étend sur presque tout l'écran (EXPAND_FILL dans un
+	# conteneur plein écran) : sans IGNORE explicite, il absorbe tous les clics
+	# destinés au plateau 3D en dessous, avant qu'ils n'atteignent PawnController.
+	_log.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(_log)
 
 
