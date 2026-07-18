@@ -56,14 +56,14 @@ func _input(event: InputEvent) -> void:
 		if _is_orbiting:
 			_yaw -= event.relative.x * sensitivity
 			_pitch = clampf(_pitch + event.relative.y * sensitivity,
-					-PI / 2 + 0.1, PI / 2 - 0.1)
+					0.0, PI / 2 - 0.1)
 			_update_transform()
 
 	# --- Mobile : drag tactile pour orbiter ---
 	elif event is InputEventScreenDrag:
 		_yaw -= event.relative.x * sensitivity
 		_pitch = clampf(_pitch + event.relative.y * sensitivity,
-				-PI / 2 + 0.1, PI / 2 - 0.1)
+				0.0, PI / 2 - 0.1)
 		_update_transform()
 
 

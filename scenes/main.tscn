@@ -35,6 +35,7 @@ environment = SubResource("Environment_ya4ey")
 [node name="CameraRig" type="Node3D" parent="." unique_id=229596424 node_paths=PackedStringArray("target")]
 script = ExtResource("3_cam")
 target = NodePath("../Marker3D")
+zoom_step = 0.1
 min_distance = 2.0
 default_distance = 2.0
 

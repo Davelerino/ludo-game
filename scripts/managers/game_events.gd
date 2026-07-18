@@ -46,6 +46,11 @@ signal pawn_finished(pawn: Dictionary)
 ## Émis à chaque changement d'état de la machine à tours (utile pour le debug
 ## et pour piloter l'UI). `old_state`/`new_state` ∈ TurnManager.TurnState.
 signal turn_state_changed(old_state: int, new_state: int)
+## Émis quand le TurnManager propose un dé à jouer : la liste des pions
+## légaux pour `dice_value` (peut être vide juste avant qu'un dé injouable
+## soit retiré). Utile pour l'UI/debug, qui n'a pas à réévaluer
+## RuleEngine.get_legal_target_pawns() elle-même.
+signal pawns_offered(player_id: int, pawn_ids: Array, dice_value: int)
 ## Émis quand un tour se termine et qu'on passe au joueur suivant (ou qu'un
 ## extra tour est accordé au même joueur, §5.1). `granted_extra_turn` vaut
 ## true dans ce dernier cas.

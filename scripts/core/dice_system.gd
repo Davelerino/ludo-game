@@ -72,7 +72,7 @@ func is_die_available(die: String) -> bool:
 func all_dice_consumed() -> bool:
 	if dice_a == 0 and dice_b == 0:
 		return true
-	return dice_a_used and (dice_a == dice_b or dice_b_used)
+	return dice_a_used and dice_b_used
 
 
 ## Double six -> extra tour garanti (§5.1).

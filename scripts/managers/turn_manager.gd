@@ -138,13 +138,11 @@ func _resolve_checked_moves(a: int, b: int) -> void:
 		# On laisse le joueur consommer les dés actuels, puis on forcera la fin.
 		pass  # traité dans _after_move_resolved() via _force_end_after_consume
 
-	# Construit la liste des dés encore jouables ce tour.
+	# Construit la liste des dés encore jouables ce tour. Sur un double, A et
+	# B portent la même valeur mais restent deux coups distincts à jouer.
 	_pending_dice.clear()
 	_pending_dice.append({"die": "A", "value": a})
-	if a != b:
-		_pending_dice.append({"die": "B", "value": b})
-	# (sur un double, un seul "dé logique" — règle Ludo : les deux faces sont
-	#  identiques, on joue deux fois la même valeur via A puis B consommés.)
+	_pending_dice.append({"die": "B", "value": b})
 
 	_change_state(TurnState.WAITING_FOR_SELECTION)
 	_offer_selection()
@@ -170,8 +168,16 @@ func _offer_selection() -> void:
 		_offer_selection()  # réessaie avec le dé suivant
 		return
 
-	# Demande au PawnController de laisser le joueur choisir (§11.6).
 	var legal_ids: Array = legal.map(func(e): return e.pawn.id)
+	GameEvents.pawns_offered.emit(active_player, legal_ids, first.value)
+
+	if legal.size() == 1:
+		# Un seul pion peut jouer ce dé : ce n'est pas un vrai choix, on le
+		# joue automatiquement au lieu d'attendre un clic (QoL).
+		_play_pawn(legal[0].pawn)
+		return
+
+	# Demande au PawnController de laisser le joueur choisir (§11.6).
 	pawn_controller.request_selection(active_player, legal_ids)
 
 
@@ -183,7 +189,13 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 		return
 	if _pending_dice.is_empty():
 		return
+	_play_pawn(pawn)
 
+
+## Joue `pawn` avec le dé en tête de `_pending_dice`, que le choix vienne
+## d'un clic joueur (_on_pawn_selected) ou d'un coup forcé auto-joué
+## (_offer_selection, quand un seul pion est légal pour ce dé).
+func _play_pawn(pawn: Dictionary) -> void:
 	var entry: Dictionary = _pending_dice[0]
 
 	# Snapshot AVANT toute mutation : apply_move() va muter pawn.state/progress

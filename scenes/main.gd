@@ -53,3 +53,11 @@ func _ready() -> void:
 	var dice_view: DiceView = ui_manager.get_node_or_null("DiceView")
 	if dice_view:
 		dice_view.turn_manager = TurnManager
+
+	# 7. Injecte les dépendances du HUD (DiceSystem/BoardManager ne sont pas
+	#    des autoloads, contrairement à TurnManager).
+	var hud: HUD = ui_manager.get_node_or_null("HUD")
+	if hud:
+		hud.dice_system = dice_system
+		hud.board_manager = board_manager
+		hud.refresh()
