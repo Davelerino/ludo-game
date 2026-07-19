@@ -158,9 +158,11 @@ func move_pawn_visual(
 			waypoints.append(board_manager.world_position_for_progress(pawn.player, step_progress))
 	waypoints.append(final_target)
 
+	var duration_mode: BoardTuning.MoveDurationMode = board_tuning.move_duration_mode if board_tuning else BoardTuning.MoveDurationMode.FIXED_TOTAL
 	var total_duration: float = board_tuning.move_total_duration if board_tuning else 0.5
 	var min_hop: float = board_tuning.move_min_hop_duration if board_tuning else 0.12
-	var segment_duration: float = compute_segment_duration(total_duration, min_hop, waypoints.size())
+	var duration_per_cell: float = board_tuning.move_duration_per_cell if board_tuning else 0.35
+	var segment_duration: float = compute_segment_duration(duration_mode, total_duration, min_hop, duration_per_cell, waypoints.size())
 
 	var tween: Tween = create_tween()
 	for waypoint in waypoints:
@@ -199,11 +201,22 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 		.set_trans(trans).set_ease(ease_type)
 
 
-## Durée d'un segment individuel : le budget total (`total_duration`) est
-## réparti sur toutes les cases du trajet (`waypoint_count`), avec un plancher
-## (`min_hop_duration`) pour rester lisible sur les longs coups — voir
-## tests/test_pawn_move_duration.gd. Fonction pure, testable sans scène.
-static func compute_segment_duration(total_duration: float, min_hop_duration: float, waypoint_count: int) -> float:
+## Durée d'un segment individuel, selon le mode configuré dans BoardTuning —
+## voir tests/test_pawn_move_duration.gd. Fonction pure, testable sans scène.
+## - FIXED_TOTAL : le budget total (`total_duration`) est réparti sur toutes
+##   les cases du trajet (`waypoint_count`), avec un plancher
+##   (`min_hop_duration`) pour rester lisible sur les longs coups.
+## - PROPORTIONAL : chaque case dure `duration_per_cell`, quel que soit le
+##   nombre de cases (comportement d'origine du projet).
+static func compute_segment_duration(
+	mode: BoardTuning.MoveDurationMode,
+	total_duration: float,
+	min_hop_duration: float,
+	duration_per_cell: float,
+	waypoint_count: int
+) -> float:
+	if mode == BoardTuning.MoveDurationMode.PROPORTIONAL:
+		return duration_per_cell
 	return max(min_hop_duration, total_duration / max(1, waypoint_count))
 
 

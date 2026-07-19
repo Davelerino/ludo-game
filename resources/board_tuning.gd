@@ -18,14 +18,27 @@ extends Resource
 @export var yard_elevation: float = 0.2
 @export var pawn_lift_height: float = 0.5
 
+## Mode de répartition de la durée d'un déplacement sur ses cases (réglable
+## dans l'inspecteur — les deux modes coexistent le temps du bêta-test, un
+## seul sera retenu ensuite) :
+## - FIXED_TOTAL : budget total quasi-fixe (`move_total_duration`), réparti
+##   sur les cases avec un plancher (`move_min_hop_duration`), quel que soit
+##   le nombre de cases franchies (un dé de 6 ne dure pas 6x plus qu'un dé de 1).
+## - PROPORTIONAL : chaque case ajoute une durée fixe (`move_duration_per_cell`)
+##   au total — comportement d'origine du projet.
+enum MoveDurationMode { FIXED_TOTAL, PROPORTIONAL }
+
 @export_group("Animation")
-## Budget de durée pour TOUT le déplacement d'un pion (pas par case) — voir
-## PawnController.compute_segment_duration().
+@export var move_duration_mode: MoveDurationMode = MoveDurationMode.FIXED_TOTAL
+## Budget de durée pour TOUT le déplacement d'un pion — mode FIXED_TOTAL
+## uniquement. Voir PawnController.compute_segment_duration().
 @export var move_total_duration: float = 0.5
 ## Plancher de durée par segment, pour que chaque case franchie reste lisible
 ## même sur un long trajet (dé de 6) où le budget total serait sinon réparti
-## trop finement.
+## trop finement — mode FIXED_TOTAL uniquement.
 @export var move_min_hop_duration: float = 0.12
+## Durée fixe par case franchie — mode PROPORTIONAL uniquement.
+@export var move_duration_per_cell: float = 0.35
 ## Courbe d'interpolation du glissement (case par case) — modifiable dans
 ## l'inspecteur pour essayer différents ressentis : BACK = petit "punch" à
 ## l'arrivée, EXPO/CUBIC = démarrage vif, ELASTIC = rebond élastique,
