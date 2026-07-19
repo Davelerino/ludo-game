@@ -160,14 +160,11 @@ func move_pawn_visual(
 
 	var total_duration: float = board_tuning.move_total_duration if board_tuning else 0.5
 	var min_hop: float = board_tuning.move_min_hop_duration if board_tuning else 0.12
-	var height: float = board_tuning.hop_height if board_tuning else 0.18
-	var hop_duration: float = compute_hop_duration(total_duration, min_hop, waypoints.size())
+	var segment_duration: float = compute_segment_duration(total_duration, min_hop, waypoints.size())
 
 	var tween: Tween = create_tween()
-	var current_from: Vector3 = node.position
 	for waypoint in waypoints:
-		_append_hop(tween, node, current_from, waypoint, hop_duration, height)
-		current_from = waypoint
+		_append_move_segment(tween, node, waypoint, segment_duration)
 
 	if not capture_info.is_empty():
 		_append_capture_stage(tween, capture_info)
@@ -188,7 +185,8 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 	if victim_node == null or not is_instance_valid(victim_node):
 		return
 	var cap_duration: float = board_tuning.capture_duration if board_tuning else 0.5
-	var height: float = board_tuning.hop_height if board_tuning else 0.18
+	var trans: Tween.TransitionType = board_tuning.move_transition if board_tuning else Tween.TRANS_SINE
+	var ease_type: Tween.EaseType = board_tuning.move_ease if board_tuning else Tween.EASE_IN_OUT
 	# victim.state est déjà CAPTURED (apply_move() l'a déjà mutée par
 	# référence), donc cell_world_position(victim) résout sa nouvelle case de
 	# zone de capture.
@@ -196,26 +194,29 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 	# Point de départ explicite (case ring d'avant capture, dérivée du snapshot
 	# pré-mutation) plutôt que la transform courante du nœud — plus robuste.
 	var victim_from: Vector3 = board_manager.world_position_for_progress(victim.player, capture_info.old_progress)
-	_append_hop(tween, victim_node, victim_from, victim_target, cap_duration, height)
+	tween.tween_property(victim_node, "position", victim_target, cap_duration)\
+		.from(victim_from)\
+		.set_trans(trans).set_ease(ease_type)
 
 
-## Durée d'un saut individuel : le budget total (`total_duration`) est réparti
-## sur toutes les cases du trajet (`waypoint_count`), avec un plancher
+## Durée d'un segment individuel : le budget total (`total_duration`) est
+## réparti sur toutes les cases du trajet (`waypoint_count`), avec un plancher
 ## (`min_hop_duration`) pour rester lisible sur les longs coups — voir
-## tests/test_pawn_hop_duration.gd. Fonction pure, testable sans scène.
-static func compute_hop_duration(total_duration: float, min_hop_duration: float, waypoint_count: int) -> float:
+## tests/test_pawn_move_duration.gd. Fonction pure, testable sans scène.
+static func compute_segment_duration(total_duration: float, min_hop_duration: float, waypoint_count: int) -> float:
 	return max(min_hop_duration, total_duration / max(1, waypoint_count))
 
 
-## Ajoute un segment de saut en arc (parabole verticale) au tween, de
-## `from_pos` vers `to_pos`. Remplace le glissement plat : `t` est déjà "eased"
-## par set_trans()/set_ease() avant d'arriver dans le callback (comportement
-## standard de tween_method(), identique à tween_property()).
-func _append_hop(tween: Tween, node: Node3D, from_pos: Vector3, to_pos: Vector3, duration: float, height: float) -> void:
-	var updater := func(t: float) -> void:
-		node.position = from_pos.lerp(to_pos, t) + Vector3.UP * height * (4.0 * t * (1.0 - t))
-	tween.tween_method(updater, 0.0, 1.0, duration)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+## Ajoute un segment de déplacement au tween (glissement plat, poursuit
+## depuis la position courante du nœud — comportement standard de
+## tween_property() quand les segments sont chaînés sur le même Tween). La
+## courbe d'interpolation vient de BoardTuning.move_transition/move_ease
+## (réglable dans l'inspecteur, voir board_tuning.gd).
+func _append_move_segment(tween: Tween, node: Node3D, to_pos: Vector3, duration: float) -> void:
+	var trans: Tween.TransitionType = board_tuning.move_transition if board_tuning else Tween.TRANS_SINE
+	var ease_type: Tween.EaseType = board_tuning.move_ease if board_tuning else Tween.EASE_IN_OUT
+	tween.tween_property(node, "position", to_pos, duration)\
+		.set_trans(trans).set_ease(ease_type)
 
 
 ## Rend un ensemble de pions cliquables par le joueur actif (sélection souris,
