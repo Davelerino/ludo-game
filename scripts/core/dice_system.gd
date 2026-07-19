@@ -47,7 +47,17 @@ func roll() -> void:
 	dice_b = _rng.randi_range(1, 6)
 	dice_a_used = false
 	dice_b_used = false
-	GameEvents.dice_rolled.emit(dice_a, dice_b, is_double())
+	# IMPORTANT : on capture dice_a/dice_b dans des variables LOCALES avant
+	# d'émettre. Si on passait les champs directement, un premier listener
+	# (TurnManager, connecté avant les vues) peut, DANS SON traitement
+	# synchrone de ce même signal, appeler reset() (ex. aucun coup légal,
+	# tour perdu) et remettre dice_a/dice_b à 0 AVANT que les listeners
+	# suivants (HUD, DiceView) ne reçoivent l'appel — ceux-ci recevraient
+	# alors (0, 0) au lieu du lancer réel, Godot semblant référencer le
+	# champ plutôt que d'en copier la valeur à l'émission dans ce cas.
+	var rolled_a: int = dice_a
+	var rolled_b: int = dice_b
+	GameEvents.dice_rolled.emit(rolled_a, rolled_b, rolled_a == rolled_b)
 
 
 ## Marque un dé comme consommé après qu'un pion ait été joué avec.
