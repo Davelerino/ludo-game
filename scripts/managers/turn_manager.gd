@@ -64,6 +64,12 @@ var locked_pawn_ids: Array = []
 ## Dés restant à jouer ce tour (liste de {"die":"A"|"B","value":int}).
 var _pending_dice: Array = []
 
+## Index dans `_pending_dice` du dé actuellement proposé au joueur (voir
+## RuleEngine.select_pool_preserving_pawns() — pas toujours 0, cf. règle de
+## priorité du pool de dés). Utilisé par _on_pawn_selected() pour savoir quel
+## dé jouer une fois le clic reçu.
+var _offered_die_index: int = 0
+
 var _is_double_six: bool = false
 var _last_result: Dictionary = {}
 
@@ -169,27 +175,47 @@ func _offer_selection() -> void:
 		_end_turn(_is_double_six, "all_dice_consumed")
 		return
 
-	var first: Dictionary = _pending_dice[0]
-	var legal: Array = RuleEngine.get_legal_target_pawns(
-		active_player, board_manager.all_pawns, first.value, locked_pawn_ids
-	)
+	var die_index: int = 0
+	var legal: Array
+
+	if _pending_dice.size() > 1:
+		# Règle maison : la consommation complète du pool de dés a priorité
+		# sur toute autre mécanique (ex. une capture qui verrouillerait le
+		# seul pion capable de jouer le second dé, §8.3/L10) — voir
+		# RuleEngine.select_pool_preserving_pawns(). Peut choisir de jouer
+		# _pending_dice[1] avant _pending_dice[0] si c'est le seul ordre qui
+		# permet de jouer les deux dés.
+		var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(
+			active_player, board_manager.all_pawns,
+			_pending_dice[0].value, _pending_dice[1].value, locked_pawn_ids
+		)
+		die_index = choice.die_index
+		legal = choice.pawns
+	else:
+		legal = RuleEngine.get_legal_target_pawns(
+			active_player, board_manager.all_pawns, _pending_dice[0].value, locked_pawn_ids
+		)
+
+	var current: Dictionary = _pending_dice[die_index]
+
 	if legal.is_empty():
 		# Ce dé n'est jouable par aucun pion (L1, L7, L8) -> on le retire.
-		dice_system.mark_used(first.die)
-		_pending_dice.pop_front()
+		dice_system.mark_used(current.die)
+		_pending_dice.remove_at(die_index)
 		_offer_selection()  # réessaie avec le dé suivant
 		return
 
 	var legal_ids: Array = legal.map(func(e): return e.pawn.id)
-	GameEvents.pawns_offered.emit(active_player, legal_ids, first.value)
+	GameEvents.pawns_offered.emit(active_player, legal_ids, current.value)
 
 	if legal.size() == 1:
 		# Un seul pion peut jouer ce dé : ce n'est pas un vrai choix, on le
 		# joue automatiquement au lieu d'attendre un clic (QoL).
-		_play_pawn(legal[0].pawn)
+		_play_pawn(legal[0].pawn, die_index)
 		return
 
 	# Demande au PawnController de laisser le joueur choisir (§11.6).
+	_offered_die_index = die_index
 	pawn_controller.request_selection(active_player, legal_ids)
 
 
@@ -201,14 +227,15 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 		return
 	if _pending_dice.is_empty():
 		return
-	_play_pawn(pawn)
+	_play_pawn(pawn, _offered_die_index)
 
 
-## Joue `pawn` avec le dé en tête de `_pending_dice`, que le choix vienne
+## Joue `pawn` avec le dé `_pending_dice[die_index]`, que le choix vienne
 ## d'un clic joueur (_on_pawn_selected) ou d'un coup forcé auto-joué
-## (_offer_selection, quand un seul pion est légal pour ce dé).
-func _play_pawn(pawn: Dictionary) -> void:
-	var entry: Dictionary = _pending_dice[0]
+## (_offer_selection, quand un seul pion est légal pour ce dé). `die_index`
+## n'est pas toujours 0 : voir la règle de priorité du pool de dés ci-dessus.
+func _play_pawn(pawn: Dictionary, die_index: int = 0) -> void:
+	var entry: Dictionary = _pending_dice[die_index]
 
 	# Snapshot AVANT toute mutation : apply_move() va muter pawn.state/progress
 	# (et ceux de la victime en cas de capture) en place, donc c'est le seul
@@ -238,7 +265,7 @@ func _play_pawn(pawn: Dictionary) -> void:
 
 	_last_result = result
 	dice_system.mark_used(entry.die)
-	_pending_dice.pop_front()
+	_pending_dice.remove_at(die_index)
 
 	# Publie les signaux de haut niveau (§11.2) AVANT l'animation.
 	GameEvents.move_validated.emit(pawn, entry.value, result)

@@ -392,3 +392,82 @@ static func validate_scenario(all_pawns: Array) -> Array[String]:
 		if distinct_players.size() > 2:
 			warnings.append("Case anneau %d : %d joueurs différents empilés." % [ring_index, distinct_players.size()])
 	return warnings
+
+
+# ----------------------------------------------------------------------------
+# 8. PRIORITÉ DE CONSOMMATION DU POOL DE DÉS (règle maison)
+# ----------------------------------------------------------------------------
+#
+# Règle : consommer l'intégralité du pool de dés (les deux dés du tour) a
+# priorité sur toute autre mécanique, y compris une capture. Concrètement :
+# capturer verrouille le pion capturant pour le reste du tour (§8.3/L10,
+# voir apply_move() / TurnManager._play_pawn()) ; si ce verrouillage laisse
+# le second dé sans aucun pion capable de le jouer, ALORS QU'un autre ordre
+# (jouer le second dé d'abord) aurait permis de jouer les deux dés à la
+# suite, c'est ce second ordre qui doit être choisi — quitte à renoncer à la
+# capture. La perte d'un dé n'est acceptée que si AUCUN ordre ne permet de
+# jouer les deux (voir select_pool_preserving_pawns()).
+
+## Clone superficiel d'un tableau de pions (Dictionary de champs primitifs
+## uniquement — un `duplicate()` peu profond suffit, pas de structure imbriquée).
+static func _clone_pawns(all_pawns: Array) -> Array:
+	var cloned: Array = []
+	for p in all_pawns:
+		cloned.append(p.duplicate())
+	return cloned
+
+## true si jouer le pion `pawn_id` avec `value_now` (sur un CLONE, sans muter
+## `all_pawns`) laisse au moins un coup légal pour `value_next` ensuite — en
+## reproduisant le verrouillage post-capture (§8.3/L10) dans la simulation.
+static func _preserves_other_die(
+	player_id: int,
+	all_pawns: Array,
+	pawn_id: int,
+	value_now: int,
+	value_next: int,
+	locked_pawn_ids: Array
+) -> bool:
+	var cloned: Array = _clone_pawns(all_pawns)
+	var cloned_pawn: Dictionary = {}
+	for p in cloned:
+		if p.id == pawn_id:
+			cloned_pawn = p
+			break
+	var cloned_locked: Array = locked_pawn_ids.duplicate()
+	var result: Dictionary = apply_move(cloned_pawn, value_now, cloned)
+	if result.capture:
+		cloned_locked.append(cloned_pawn.id)
+	return not get_legal_target_pawns(player_id, cloned, value_next, cloned_locked).is_empty()
+
+## Détermine lequel des deux dés en attente jouer MAINTENANT, en donnant la
+## priorité à la consommation complète du pool sur toute autre mécanique.
+## `value_first`/`value_second` correspondent respectivement à
+## `_pending_dice[0]`/`_pending_dice[1]` côté TurnManager.
+## Retourne {"die_index": 0 ou 1, "pawns": Array} — "pawns" au même format
+## que get_legal_target_pawns(), déjà filtré aux choix qui préservent le pool
+## SI un tel choix existe ; sinon = tous les pions légaux du dé d'origine
+## (index 0), sans restriction, car la perte d'un dé est alors inévitable.
+static func select_pool_preserving_pawns(
+	player_id: int,
+	all_pawns: Array,
+	value_first: int,
+	value_second: int,
+	locked_pawn_ids: Array
+) -> Dictionary:
+	var legal_first: Array = get_legal_target_pawns(player_id, all_pawns, value_first, locked_pawn_ids)
+	var preserving_first: Array = legal_first.filter(func(c):
+		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_first, value_second, locked_pawn_ids)
+	)
+	if not preserving_first.is_empty():
+		return {"die_index": 0, "pawns": preserving_first}
+
+	var legal_second: Array = get_legal_target_pawns(player_id, all_pawns, value_second, locked_pawn_ids)
+	var preserving_second: Array = legal_second.filter(func(c):
+		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_second, value_first, locked_pawn_ids)
+	)
+	if not preserving_second.is_empty():
+		return {"die_index": 1, "pawns": preserving_second}
+
+	# Aucun ordre ne permet de jouer les deux dés : la perte est inévitable,
+	# on ne restreint rien (comportement normal, priorité au dé de tête).
+	return {"die_index": 0, "pawns": legal_first}

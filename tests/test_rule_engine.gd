@@ -35,6 +35,9 @@ func _init() -> void:
 	test_home_lane_exact_finish()
 	test_no_barrier_effect_in_home_lane()
 	test_victory_detection()
+	test_pool_priority_forces_non_capturing_order()
+	test_pool_priority_allows_capture_when_unavoidable()
+	test_pool_priority_no_restriction_when_no_conflict()
 
 	print("\n=== Résultat : %d PASS / %d FAIL ===" % [_pass_count, _fail_count])
 	quit(0 if _fail_count == 0 else 1)
@@ -210,3 +213,54 @@ func test_victory_detection() -> void:
 		all_pawns.append(p)
 	_assert(RuleEngine.has_player_won(0, all_pawns), "le joueur 0 a 4 pions FINI")
 	_assert(RuleEngine.check_victory(all_pawns) == 0, "check_victory retourne le joueur 0")
+
+
+# ----------------------------------------------------------------------------
+# Règle maison : priorité de consommation du pool de dés (§8 de rule_engine.gd)
+# ----------------------------------------------------------------------------
+
+func test_pool_priority_forces_non_capturing_order() -> void:
+	print("-- test_pool_priority_forces_non_capturing_order (pool complet > capture) --")
+	# mover (joueur 0) progress=10. Die "A"=4 -> ring_index 14, capture un
+	# ennemi seul là -> mover verrouillé -> plus aucun pion pour die "B"=3
+	# (les autres pions du joueur 0 sont au yard, besoin d'un 6). Die "B"=3
+	# d'abord -> 10->13 (case vide, pas de capture) -> mover reste libre ->
+	# die "A"=4 ensuite -> 13->17 (l'ennemi en 14 n'est que traversé, pas sur
+	# la case d'atterrissage : pas de capture). Les DEUX dés sont alors joués.
+	var mover: Dictionary = _pawn_ring(0, 0, 10)
+	var enemy: Dictionary = _pawn_ring(10, 1, 1)  # ring_index (13+1)%52 = 14
+	var all_pawns: Array = [mover, enemy, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+
+	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
+	_assert(choice.die_index == 1, "l'ordre choisi joue d'abord le second dé (3), pas le premier (4)")
+	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
+		"le pion mover est le seul candidat retenu pour cet ordre (pas de capture)")
+
+
+func test_pool_priority_allows_capture_when_unavoidable() -> void:
+	print("-- test_pool_priority_allows_capture_when_unavoidable (aucun ordre ne préserve le pool) --")
+	# Cette fois, les DEUX dés mènent chacun à une capture (donc à un
+	# verrouillage) : quel que soit l'ordre, l'autre dé serait perdu. Aucune
+	# restriction ne doit alors s'appliquer (la capture reste autorisée).
+	var mover: Dictionary = _pawn_ring(0, 0, 10)
+	var enemy_a: Dictionary = _pawn_ring(10, 1, 1)   # ring_index (13+1)%52 = 14 (atteint par le dé 4)
+	var enemy_b: Dictionary = _pawn_ring(11, 2, 39)  # ring_index (26+39)%52 = 13 (atteint par le dé 3)
+	var all_pawns: Array = [mover, enemy_a, enemy_b, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+
+	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
+	_assert(choice.die_index == 0, "aucun ordre ne préserve le pool -> comportement normal (premier dé)")
+	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
+		"le pion mover reste le seul candidat (capture autorisée, perte d'un dé inévitable)")
+
+
+func test_pool_priority_no_restriction_when_no_conflict() -> void:
+	print("-- test_pool_priority_no_restriction_when_no_conflict (pas de capture, pas de conflit) --")
+	# Aucune capture possible ici : les deux ordres préservent le pool sans
+	# distinction, la sélection ne doit rien restreindre (comportement normal).
+	var mover: Dictionary = _pawn_ring(0, 0, 5)
+	var all_pawns: Array = [mover, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+
+	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
+	_assert(choice.die_index == 0, "sans conflit, l'ordre naturel (premier dé) est conservé")
+	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
+		"le pion reste jouable normalement, aucune restriction appliquée")
