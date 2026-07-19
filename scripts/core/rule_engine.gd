@@ -300,18 +300,21 @@ static func get_legal_target_pawns(
 			legal.append({"pawn": pawn, "preview": preview})
 	return legal
 
-## L2/L3/L4/L7/L8 : vrai si le joueur a au moins un coup légal, tous dés confondus.
+## L2/L3/L4/L7/L8 : vrai si le joueur a au moins un coup légal, tous les dés
+## du pool confondus (dédupliqué par valeur — inutile de tester deux fois la
+## même valeur si plusieurs dés du pool la partagent).
 static func has_any_legal_move(
 	player_id: int,
 	all_pawns: Array,
-	dice_a: int,
-	dice_b: int,
+	dice_values: Array,
 	locked_pawn_ids: Array = []
 ) -> bool:
-	if not get_legal_target_pawns(player_id, all_pawns, dice_a, locked_pawn_ids).is_empty():
-		return true
-	if dice_a != dice_b:
-		if not get_legal_target_pawns(player_id, all_pawns, dice_b, locked_pawn_ids).is_empty():
+	var seen := {}
+	for value in dice_values:
+		if value in seen:
+			continue
+		seen[value] = true
+		if not get_legal_target_pawns(player_id, all_pawns, value, locked_pawn_ids).is_empty():
 			return true
 	return false
 
@@ -395,18 +398,21 @@ static func validate_scenario(all_pawns: Array) -> Array[String]:
 
 
 # ----------------------------------------------------------------------------
-# 8. PRIORITÉ DE CONSOMMATION DU POOL DE DÉS (règle maison)
+# 8. FILET ANTI-GÂCHIS DU POOL DE DÉS (règle maison)
 # ----------------------------------------------------------------------------
 #
-# Règle : consommer l'intégralité du pool de dés (les deux dés du tour) a
-# priorité sur toute autre mécanique, y compris une capture. Concrètement :
-# capturer verrouille le pion capturant pour le reste du tour (§8.3/L10,
-# voir apply_move() / TurnManager._play_pawn()) ; si ce verrouillage laisse
-# le second dé sans aucun pion capable de le jouer, ALORS QU'un autre ordre
-# (jouer le second dé d'abord) aurait permis de jouer les deux dés à la
-# suite, c'est ce second ordre qui doit être choisi — quitte à renoncer à la
-# capture. La perte d'un dé n'est acceptée que si AUCUN ordre ne permet de
-# jouer les deux (voir select_pool_preserving_pawns()).
+# Règle (révisée) : le joueur choisit LIBREMENT quel dé du pool jouer sur quel
+# pion — il n'y a plus d'ordre imposé automatiquement (TurnManager.select_die()
+# laisse le joueur cliquer n'importe quel dé encore jouable). La seule
+# automatisation restante : si jouer le dé choisi sur le pion choisi
+# verrouillerait le pion (capture, §8.3/L10) et rendrait ainsi UN SEUL autre
+# dé du pool injouable par tout autre pion, ALORS QU'un mouvement combiné
+# (les deux dés en un seul coup sur ce même pion, sans capturer/verrouiller
+# sur la case intermédiaire) l'évite, ce mouvement combiné est joué à la
+# place — voir find_wasted_die_id() + TurnManager._resolve_die_pawn_choice().
+# Si aucun mouvement combiné ne sauve le dé, ou si le choix du joueur ne gâche
+# rien, on joue simplement le coup tel quel : la perte d'un dé n'est acceptée
+# que quand elle est inévitable ou ambiguë (plusieurs dés gâchés à la fois).
 
 ## Clone superficiel d'un tableau de pions (Dictionary de champs primitifs
 ## uniquement — un `duplicate()` peu profond suffit, pas de structure imbriquée).
@@ -419,7 +425,7 @@ static func _clone_pawns(all_pawns: Array) -> Array:
 ## true si jouer le pion `pawn_id` avec `value_now` (sur un CLONE, sans muter
 ## `all_pawns`) laisse au moins un coup légal pour `value_next` ensuite — en
 ## reproduisant le verrouillage post-capture (§8.3/L10) dans la simulation.
-static func _preserves_other_die(
+static func _would_still_be_playable(
 	player_id: int,
 	all_pawns: Array,
 	pawn_id: int,
@@ -439,57 +445,28 @@ static func _preserves_other_die(
 		cloned_locked.append(cloned_pawn.id)
 	return not get_legal_target_pawns(player_id, cloned, value_next, cloned_locked).is_empty()
 
-## Détermine lequel des deux dés en attente jouer MAINTENANT, en donnant la
-## priorité à la consommation complète du pool sur toute autre mécanique.
-## `value_first`/`value_second` correspondent respectivement à
-## `_pending_dice[0]`/`_pending_dice[1]` côté TurnManager.
-## Retourne {"die_index": 0 ou 1, "pawns": Array} — "pawns" au même format
-## que get_legal_target_pawns(), déjà filtré aux choix qui préservent le pool
-## SI un tel choix existe ; sinon = tous les pions légaux du dé d'origine
-## (index 0), sans restriction, car la perte d'un dé est alors inévitable.
-static func select_pool_preserving_pawns(
+## Après que le joueur a choisi de jouer `chosen_value` sur `pawn_id`, indique
+## si EXACTEMENT UN AUTRE dé du pool restant (`other_dice`, Array de
+## {"id":int,"value":int}) serait rendu injouable par tout pion suite à ce
+## choix. Retourne l'id de ce dé, ou -1 si aucun dé n'est gâché OU si
+## PLUSIEURS dés seraient gâchés simultanément (cas ambigu : on ne devine pas
+## lequel sauver via un mouvement combiné à 2 dés, on joue normalement et on
+## assume la perte).
+static func find_wasted_die_id(
 	player_id: int,
 	all_pawns: Array,
-	value_first: int,
-	value_second: int,
+	pawn_id: int,
+	chosen_value: int,
+	other_dice: Array,
 	locked_pawn_ids: Array
-) -> Dictionary:
-	var legal_first: Array = get_legal_target_pawns(player_id, all_pawns, value_first, locked_pawn_ids)
-	var preserving_first: Array = legal_first.filter(func(c):
-		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_first, value_second, locked_pawn_ids)
-	)
-	if not preserving_first.is_empty():
-		return {"die_index": 0, "pawns": preserving_first, "combined_candidates": []}
-
-	var legal_second: Array = get_legal_target_pawns(player_id, all_pawns, value_second, locked_pawn_ids)
-	var preserving_second: Array = legal_second.filter(func(c):
-		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_second, value_first, locked_pawn_ids)
-	)
-	if not preserving_second.is_empty():
-		return {"die_index": 1, "pawns": preserving_second, "combined_candidates": []}
-
-	# Tier 3 : aucun réordonnancement ne marche (tiers 1/2 vides) — un
-	# mouvement COMBINÉ (les deux dés en un seul coup pour un même pion, sans
-	# capturer sur la case qui l'aurait sinon verrouillé) évite-t-il la perte ?
-	# Renvoie une LISTE (pas un seul pion) : plusieurs pions pourraient chacun
-	# offrir un mouvement combiné valide, et le joueur doit alors pouvoir
-	# choisir, exactement comme pour les tiers 1/2.
-	var combined_candidates: Array = []
-	var seen_ids := {}
-	for candidate in legal_first + legal_second:
-		if candidate.pawn.id in seen_ids:
-			continue
-		seen_ids[candidate.pawn.id] = true
-		var preview: Dictionary = try_combined_move(candidate.pawn, value_first, value_second, all_pawns)
-		if preview.legal:
-			combined_candidates.append({"pawn": candidate.pawn, "preview": preview})
-	if not combined_candidates.is_empty():
-		return {"die_index": 0, "pawns": [], "combined_candidates": combined_candidates}
-
-	# Aucun ordre NI mouvement combiné ne permet de jouer les deux dés : la
-	# perte est inévitable, on ne restreint rien (comportement normal,
-	# priorité au dé de tête).
-	return {"die_index": 0, "pawns": legal_first, "combined_candidates": []}
+) -> int:
+	var wasted_ids: Array = []
+	for entry in other_dice:
+		if not _would_still_be_playable(player_id, all_pawns, pawn_id, chosen_value, entry.value, locked_pawn_ids):
+			wasted_ids.append(entry.id)
+	if wasted_ids.size() == 1:
+		return wasted_ids[0]
+	return -1
 
 
 ## Combine "sortie de yard" + "continuation avec le second dé" en UN SEUL
@@ -553,8 +530,8 @@ static func _try_combined_yard_exit(pawn: Dictionary, value_a: int, value_b: int
 
 
 ## Prévisualise un mouvement combiné (les deux dés d'un coup, pour un même
-## pion) — voir select_pool_preserving_pawns() Tier 3. Pour un pion déjà en
-## jeu (RING/HOME_LANE), c'est simplement try_move() avec la somme des deux
+## pion) — voir find_wasted_die_id() / TurnManager._resolve_die_pawn_choice().
+## Pour un pion déjà en jeu (RING/HOME_LANE), c'est simplement try_move() avec la somme des deux
 ## dés : le comportement normal d'un grand déplacement (transit = seules les
 ## barrières bloquent, capture/formation de barrière uniquement à la case
 ## finale) est déjà exactement ce qu'il faut. Seul le cas MAISON (sortie de

@@ -3,12 +3,12 @@ extends Control
 ## ============================================================================
 ## HUD — Panneau de debug/état de partie (GDD §11.5 : UIManager > HUD).
 ##
-## Affiche : joueur actif (avec sa vraie couleur), état du tour, les deux dés
-## (valeur + consommé ou non), les pions actuellement jouables, un tableau
-## compact des 16 pions, et un journal d'événements réduit en dessous.
-## Écoute GameEvents (§11.2) pour rester découplée des managers — sauf
-## DiceSystem/BoardManager, qui ne sont pas des autoloads (contrairement à
-## TurnManager) et doivent être injectés par main.gd.
+## Affiche : joueur actif (avec sa vraie couleur), état du tour, le pool de
+## dés en attente (TurnManager.dice_pool), les pions actuellement jouables,
+## un tableau compact des 16 pions, et un journal d'événements réduit en
+## dessous. Écoute GameEvents (§11.2) pour rester découplée des managers —
+## sauf BoardManager, qui n'est pas un autoload (contrairement à TurnManager)
+## et doit être injecté par main.gd.
 ## ============================================================================
 
 const PawnState := BoardConfig.PawnState
@@ -25,9 +25,8 @@ const PLAYER_COLORS := [
 	Color(0.90588236, 0.76862746, 0),
 ]
 
-## Injectés par main.gd (DiceSystem/BoardManager sont des noeuds de scène,
-## pas des autoloads).
-var dice_system: DiceSystem
+## Injecté par main.gd (BoardManager est un noeud de scène, pas un autoload
+## — contrairement à TurnManager, lu directement pour dice_pool ci-dessous).
 var board_manager: BoardManager
 
 var _player_swatch: ColorRect
@@ -46,6 +45,8 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
 	GameEvents.dice_rolled.connect(_on_dice_rolled)
+	GameEvents.dice_pool_changed.connect(_on_dice_pool_changed)
+	GameEvents.turn_busted.connect(_on_turn_busted)
 	GameEvents.turn_ended.connect(_on_turn_ended)
 	GameEvents.turn_state_changed.connect(_on_state_changed)
 	GameEvents.pawns_offered.connect(_on_pawns_offered)
@@ -79,7 +80,7 @@ func _build() -> void:
 	vbox.add_child(_state_label)
 
 	_dice_label = Label.new()
-	_dice_label.text = "Dés : - / -"
+	_dice_label.text = "Pool de dés : -"
 	vbox.add_child(_dice_label)
 
 	_offered_label = Label.new()
@@ -123,14 +124,19 @@ func _on_dice_rolled(a: int, b: int, is_double: bool) -> void:
 	_refresh_dice_label()
 
 
-func _on_turn_ended(_prev: int, next_p: int, extra: bool) -> void:
-	if extra:
-		_append_log("[color=orange]✦ Extra tour pour le joueur %d (%s)[/color]" % [next_p, PLAYER_NAMES[next_p]])
-	else:
-		_append_log("--- Tour du joueur %d (%s) ---" % [next_p, PLAYER_NAMES[next_p]])
-		_refresh_player_label(next_p)
+func _on_turn_ended(_prev: int, next_p: int) -> void:
+	_append_log("--- Tour du joueur %d (%s) ---" % [next_p, PLAYER_NAMES[next_p]])
+	_refresh_player_label(next_p)
 	_offered_pawn_ids = []
 	_refresh_offered_label()
+
+
+func _on_dice_pool_changed(_player_id: int, _pool: Array) -> void:
+	_refresh_dice_label()
+
+
+func _on_turn_busted(player_id: int) -> void:
+	_append_log("[color=red]💥 BUST : trois doubles six consécutifs — tour du joueur %d annulé.[/color]" % player_id)
 
 
 func _on_state_changed(_old: int, new_state: int) -> void:
@@ -180,15 +186,13 @@ func _refresh_offered_label() -> void:
 
 
 func _refresh_dice_label() -> void:
-	if not dice_system or dice_system.dice_a == 0:
-		_dice_label.text = "Dés : - / -"
+	if TurnManager.dice_pool.is_empty():
+		_dice_label.text = "Pool de dés : -"
 		return
-	var a_state := "utilisé" if dice_system.dice_a_used else "libre"
-	var b_state := "utilisé" if dice_system.dice_b_used else "libre"
-	var double_tag := "  (DOUBLE)" if dice_system.is_double() else ""
-	_dice_label.text = "Dés : A=%d (%s) · B=%d (%s)%s" % [
-		dice_system.dice_a, a_state, dice_system.dice_b, b_state, double_tag
-	]
+	var parts := PackedStringArray()
+	for entry in TurnManager.dice_pool:
+		parts.append(str(entry.value))
+	_dice_label.text = "Pool de dés (%d) : %s" % [TurnManager.dice_pool.size(), ", ".join(parts)]
 
 
 func _refresh_pawns_table() -> void:

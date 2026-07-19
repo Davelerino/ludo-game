@@ -17,7 +17,10 @@ const PLAYER_COUNT: int = 4
 const PAWNS_PER_PLAYER: int = 4
 
 # --- Règles de jeu (§5, §6) ---
-const MAX_CONSECUTIVE_ROLLS: int = 3   # Anti-boucle infinie (§5.3)
+const MAX_CONSECUTIVE_ROLLS: int = 3   # Anti-boucle infinie (§5.3) ET seuil de
+                                        # bust : un 3e double six consécutif
+                                        # annule le tour entier, voir
+                                        # turn_manager.gd:_run_roll_chain().
 const BARRIER_MIN_PAWNS: int = 2       # Seuil de formation de barrière (§6.1)
 const ENTRY_DICE_VALUE: int = 6        # Valeur requise pour sortir du yard (§4.2)
 

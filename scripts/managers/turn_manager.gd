@@ -6,20 +6,27 @@ extends Node
 ## TurnManager — Machine à états de tour du Ludo 3D (GDD §9).
 ##
 ## RESPONSABILITÉS (§11.1)
-##   - Piloter la séquence complète d'un tour : démarrage, lancer de dés,
-##     vérification des coups légaux, sélection/applique du mouvement, fin de
-##     tour, et transition vers le joueur suivant ou un extra tour (§5.1).
-##   - Appliquer les règles de fin de tour : double six = extra tour (§5.1),
-##     compteur des 3 lancers consécutifs anti-boucle (§5.3), verrouillage
-##     post-capture d'un pion pour le reste du tour (§8.3 / L10).
+##   - Piloter la séquence complète d'un tour : démarrage, enchaînement de
+##     lancers de dés (§5.1), constitution du pool de dés, sélection/applique
+##     du mouvement (choisi librement par le joueur, dé PUIS pion), fin de
+##     tour, et transition vers le joueur suivant.
+##   - Appliquer les règles de lancer : un double six déclenche une relance
+##     IMMÉDIATE (avant tout coup joué), dont les valeurs rejoignent le même
+##     pool ; un 3e double six consécutif annule le tour entier (§5.1/§5.3
+##     révisés — voir _run_roll_chain()). Verrouillage post-capture d'un pion
+##     pour le reste du tour (§8.3 / L10).
 ##   - Déléguer TOUTE la validation au RuleEngine : le TurnManager ne décide
 ##     jamais si un coup est légal, il orchestre.
 ##
 ## DÉPENDANCES
 ##   - RuleEngine (try_move / apply_move / get_legal_target_pawns /
-##     has_any_legal_move / check_victory) : réutilisé TEL QUEL, non réécrit.
-##   - BoardConfig (PLAYER_COUNT, MAX_CONSECUTIVE_ROLLS, ENTRY_DICE_VALUE).
-##   - DiceSystem (production + suivi des dés consommés).
+##     has_any_legal_move / find_wasted_die_id / check_victory) : réutilisé
+##     TEL QUEL, non réécrit.
+##   - BoardConfig (PLAYER_COUNT, MAX_CONSECUTIVE_ROLLS, ENTRY_DICE_VALUE) —
+##     MAX_CONSECUTIVE_ROLLS sert désormais aussi de seuil de bust (3e double
+##     six consécutif).
+##   - DiceSystem (roll_pair() : simple source aléatoire, ne connaît rien du
+##     pool — voir dice_system.gd).
 ##   - BoardManager (source de vérité de l'état `all_pawns`).
 ##   - PawnController (sélection + rendu visuel).
 ##   - GameEvents (autoload) pour publier les signaux §11.2.
@@ -34,11 +41,11 @@ const PawnState := BoardConfig.PawnState
 # ----------------------------------------------------------------------------
 enum TurnState {
 	WAITING_FOR_ROLL,       # 1. début de tour : on attend que le joueur lance les dés
-	ROLLING,                # 2. dés en cours de lancer (animation) -> DICE_ROLLED
-	CHECKING_MOVES,         # 3. dés obtenus : on vérifie les coups légaux
-	WAITING_FOR_SELECTION,  # 4. au moins un coup légal : le joueur choisit un pion
+	ROLLING,                # 2. enchaînement de lancers en cours (double six -> relance immédiate)
+	CHECKING_MOVES,         # 3. pool constitué : on vérifie les coups légaux
+	WAITING_FOR_SELECTION,  # 4. au moins un coup légal : le joueur choisit un dé PUIS un pion
 	MOVING,                 # 5. coup appliqué : animation de déplacement en cours
-	TURN_ENDING,            # 6. résolution de fin de tour (extra tour ? capture-lock ?)
+	TURN_ENDING,            # 6. résolution post-coup (pool vide ? victoire ?)
 	GAME_OVER,              # 7. un joueur a gagné (§2.3, L12), la boucle s'arrête
 }
 
@@ -50,38 +57,31 @@ var dice_system: DiceSystem
 var board_manager: BoardManager
 var pawn_controller: PawnController
 
-# --- État interne du tour (§5.3, §8.3/L10) -----------------------------------
-## Compteur de lancers consécutifs DU MÊME JOUEUR. Un extra tour (double six,
-## §5.1) le décrémente/redémarre ; à MAX_CONSECUTIVE_ROLLS (3) le tour est
-## forcé à se terminer pour éviter une boucle infinie (§5.3).
-var consecutive_rolls: int = 0
-
+# --- État interne du tour (§5.1, §8.3/L10) -----------------------------------
 ## Ids des pions verrouillés pour le reste du tour après une capture (§8.3).
 ## Ces ids sont passés à RuleEngine.get_legal_target_pawns(..., locked_pawn_ids)
 ## pour exclure le pion capturé de tout nouveau coup ce tour (L10).
 var locked_pawn_ids: Array = []
 
-## Dés restant à jouer ce tour (liste de {"die":"A"|"B","value":int}).
-var _pending_dice: Array = []
+## Pool de dés en attente ce tour : Array de {"id": int, "value": int}.
+## Entièrement construit par _run_roll_chain() AVANT tout choix du joueur
+## (§5.1 : fini d'attendre la fin du tour pour la relance du double six, tout
+## est dans le pool dès le départ) ; rétrécit au fil des coups joués (voir
+## _remove_from_pool()) et de l'élagage des dés morts (_prune_dead_dice()).
+var dice_pool: Array = []
 
-## Index dans `_pending_dice` du dé actuellement proposé au joueur (voir
-## RuleEngine.select_pool_preserving_pawns() — pas toujours 0, cf. règle de
-## priorité du pool de dés). Utilisé par _on_pawn_selected() pour savoir quel
-## dé jouer une fois le clic reçu.
-var _offered_die_index: int = 0
+## Id (dans dice_pool) du dé actuellement armé par select_die(), en attente
+## d'un clic sur un pion (via pawn_controller.pawn_selected). -1 = aucun dé
+## armé (le joueur doit d'abord cliquer un dé, PUIS un pion — plus d'ordre
+## imposé automatiquement par le moteur).
+var _selected_die_id: int = -1
 
-var _is_double_six: bool = false
 var _last_result: Dictionary = {}
 
 
-func _ready() -> void:
-	# Branchement au bus global (les vues écoutent GameEvents, pas directement TM).
-	GameEvents.dice_rolled.connect(_on_dice_rolled)
-	# Le PawnController signale la sélection du joueur :
-	# (connecté dans setup() car pawn_controller peut être assigné tardivement)
-
-
 ## Rattachement explicite des dépendances (appelé par main.gd / GameRoot).
+## Le PawnController signale la sélection du joueur : connecté ici plutôt
+## qu'en _ready() car pawn_controller peut être assigné tardivement.
 func setup(p_dice: DiceSystem, p_board: BoardManager, p_pawns: PawnController) -> void:
 	dice_system = p_dice
 	board_manager = p_board
@@ -109,10 +109,9 @@ func start_from_scenario(active_player_id: int = 0) -> void:
 
 func _start_turn_loop(starting_player: int) -> void:
 	active_player = starting_player
-	consecutive_rolls = 0
 	locked_pawn_ids.clear()
-	_pending_dice.clear()
-	_is_double_six = false
+	dice_pool.clear()
+	_selected_die_id = -1
 	_last_result = {}
 	_change_state(TurnState.WAITING_FOR_ROLL)
 
@@ -124,138 +123,138 @@ func request_roll() -> void:
 	if state != TurnState.WAITING_FOR_ROLL:
 		return
 	_change_state(TurnState.ROLLING)
-	dice_system.roll()  # -> émet dice_rolled -> _on_dice_rolled (état 2->3)
+	_run_roll_chain()
 
 
 # ----------------------------------------------------------------------------
-# État 2 -> 3 : dés lancés, reçus via le bus
+# État 2 -> 3 : enchaînement de lancers (§5.1 fix + §5.3 révisé)
 # ----------------------------------------------------------------------------
-func _on_dice_rolled(a: int, b: int, _is_double: bool) -> void:
-	if state != TurnState.ROLLING:
+## Exécute 1 à 3 lancers PHYSIQUES d'affilée : un double six déclenche une
+## relance IMMÉDIATE dont les valeurs rejoignent directement dice_pool, AVANT
+## que le joueur ne choisisse le moindre coup. On a droit à 2 doubles six
+## d'affilée (2 relances) ; un 3e double six consécutif annule le tour entier
+## (bust total : pool vidé, aucun pion ne bouge). Réutilise
+## BoardConfig.MAX_CONSECUTIVE_ROLLS (3) comme seuil de bust plutôt que
+## d'introduire une nouvelle constante.
+func _run_roll_chain() -> void:
+	dice_pool.clear()
+	var next_id: int = 0
+	var chain_count: int = 0
+	var busted: bool = false
+	while true:
+		chain_count += 1
+		var pair: Array[int] = dice_system.roll_pair()
+		var is_double_six: bool = pair[0] == 6 and pair[1] == 6
+		if is_double_six and chain_count >= BoardConfig.MAX_CONSECUTIVE_ROLLS:
+			busted = true
+			break
+		dice_pool.append({"id": next_id, "value": pair[0]})
+		next_id += 1
+		dice_pool.append({"id": next_id, "value": pair[1]})
+		next_id += 1
+		if not is_double_six:
+			break
+
+	if busted:
+		dice_pool.clear()
+		GameEvents.turn_busted.emit(active_player)
+		_end_turn("triple_double_six_bust")
 		return
-	_is_double_six = (a == 6 and b == 6)
+
 	_change_state(TurnState.CHECKING_MOVES)
-	_resolve_checked_moves(a, b)
+	_resolve_checked_moves()
 
 
 # ----------------------------------------------------------------------------
-# État 3 : vérifier les coups légaux (cas L1-L8, L13)
+# État 3 : vérifier les coups légaux sur le pool entier (cas L1-L8, L13)
 # ----------------------------------------------------------------------------
-func _resolve_checked_moves(a: int, b: int) -> void:
-	# §5.3 : incrément du compteur de lancers consécutifs (anti-boucle).
-	consecutive_rolls += 1
+func _resolve_checked_moves() -> void:
+	var pool_values: Array = dice_pool.map(func(e): return e.value)
 
-	# Cas L2/L3/L4 : aucun coup possible avec aucun des deux dés -> tour perdu.
-	if not RuleEngine.has_any_legal_move(active_player, board_manager.all_pawns, a, b, locked_pawn_ids):
-		_end_turn(false, "no_legal_move")
+	# Cas L2/L3/L4 : aucun coup possible avec AUCUN dé du pool -> tour perdu.
+	if not RuleEngine.has_any_legal_move(active_player, board_manager.all_pawns, pool_values, locked_pawn_ids):
+		_end_turn("no_legal_move")
 		return
 
-	# §5.3 : à 3 lancers consécutifs on force la fin du tour même si le joueur
-	# pourrait continuer (garde-fou contre les boucles de double six).
-	if consecutive_rolls >= BoardConfig.MAX_CONSECUTIVE_ROLLS:
-		# On laisse le joueur consommer les dés actuels, puis on forcera la fin.
-		pass  # traité dans _after_move_resolved() via _force_end_after_consume
-
-	# Construit la liste des dés encore jouables ce tour. Sur un double, A et
-	# B portent la même valeur mais restent deux coups distincts à jouer.
-	_pending_dice.clear()
-	_pending_dice.append({"die": "A", "value": a})
-	_pending_dice.append({"die": "B", "value": b})
-
+	_prune_dead_dice()
+	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 	_change_state(TurnState.WAITING_FOR_SELECTION)
-	_offer_selection()
 
 
 # ----------------------------------------------------------------------------
-# État 4 : proposer la sélection des pions légaux au joueur
+# État 4 : le joueur choisit un dé du pool (UI : DicePoolView)
 # ----------------------------------------------------------------------------
-func _offer_selection() -> void:
-	if _pending_dice.is_empty():
-		# Tous les dés consommés : fin normale du tour.
-		_end_turn(_is_double_six, "all_dice_consumed")
+## Appelé par l'UI quand le joueur clique un dé encore jouable du pool.
+func select_die(pool_id: int) -> void:
+	if state != TurnState.WAITING_FOR_SELECTION:
 		return
-
-	var die_index: int = 0
-	var legal: Array
-
-	if _pending_dice.size() > 1:
-		# Règle maison : la consommation complète du pool de dés a priorité
-		# sur toute autre mécanique (ex. une capture qui verrouillerait le
-		# seul pion capable de jouer le second dé, §8.3/L10) — voir
-		# RuleEngine.select_pool_preserving_pawns(). Peut choisir de jouer
-		# _pending_dice[1] avant _pending_dice[0] si c'est le seul ordre qui
-		# permet de jouer les deux dés.
-		var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(
-			active_player, board_manager.all_pawns,
-			_pending_dice[0].value, _pending_dice[1].value, locked_pawn_ids
-		)
-		if not choice.combined_candidates.is_empty():
-			# Tier 3 : aucun réordonnancement ne préserve le pool, mais fusionner
-			# les deux dés en UN SEUL mouvement pour ce pion l'évite (la case qui
-			# aurait sinon capturé/verrouillé devient une simple case de transit).
-			var combined_ids: Array = choice.combined_candidates.map(func(e): return e.pawn.id)
-			# NOTE : cette valeur peut dépasser 6 (somme des deux dés) —
-			# seule émission de pawns_offered dans ce cas, pour affichage/debug.
-			var combined_value: int = _pending_dice[0].value + _pending_dice[1].value
-			GameEvents.pawns_offered.emit(active_player, combined_ids, combined_value)
-			if choice.combined_candidates.size() == 1:
-				_play_combined_move(choice.combined_candidates[0].pawn)
-			else:
-				_offered_die_index = -1  # sentinelle : mouvement combiné en attente
-				pawn_controller.request_selection(active_player, combined_ids)
-			return
-		die_index = choice.die_index
-		legal = choice.pawns
-	else:
-		legal = RuleEngine.get_legal_target_pawns(
-			active_player, board_manager.all_pawns, _pending_dice[0].value, locked_pawn_ids
-		)
-
-	var current: Dictionary = _pending_dice[die_index]
-
+	var entry: Dictionary = _pool_entry_by_id(pool_id)
+	if entry.is_empty():
+		return
+	var legal: Array = RuleEngine.get_legal_target_pawns(
+		active_player, board_manager.all_pawns, entry.value, locked_pawn_ids
+	)
 	if legal.is_empty():
-		# Ce dé n'est jouable par aucun pion (L1, L7, L8) -> on le retire.
-		dice_system.mark_used(current.die)
-		_pending_dice.remove_at(die_index)
-		_offer_selection()  # réessaie avec le dé suivant
+		# Garde défensive : l'UI grise déjà les dés morts (dice_pool_view.gd),
+		# ne devrait pas arriver hors race de clic.
 		return
 
 	var legal_ids: Array = legal.map(func(e): return e.pawn.id)
-	GameEvents.pawns_offered.emit(active_player, legal_ids, current.value)
+	GameEvents.pawns_offered.emit(active_player, legal_ids, entry.value)
 
 	if legal.size() == 1:
-		# Un seul pion peut jouer ce dé : ce n'est pas un vrai choix, on le
-		# joue automatiquement au lieu d'attendre un clic (QoL).
-		_play_pawn(legal[0].pawn, die_index)
+		# Un seul pion peut jouer ce dé : pas un vrai choix, on le joue
+		# automatiquement au lieu d'attendre un clic (QoL).
+		_resolve_die_pawn_choice(pool_id, legal[0].pawn)
 		return
 
-	# Demande au PawnController de laisser le joueur choisir (§11.6).
-	_offered_die_index = die_index
+	_selected_die_id = pool_id
 	pawn_controller.request_selection(active_player, legal_ids)
 
 
 # ----------------------------------------------------------------------------
-# État 4 -> 5 : le joueur a sélectionné un pion
+# État 4 -> 5 : le joueur a sélectionné un pion pour le dé armé
 # ----------------------------------------------------------------------------
 func _on_pawn_selected(pawn: Dictionary) -> void:
-	if state != TurnState.WAITING_FOR_SELECTION:
+	if state != TurnState.WAITING_FOR_SELECTION or _selected_die_id == -1:
 		return
-	if _pending_dice.is_empty():
-		return
-	if _offered_die_index == -1:
-		# Sentinelle posée par _offer_selection() : mouvement combiné (Tier 3).
-		_play_combined_move(pawn)
-		return
-	_play_pawn(pawn, _offered_die_index)
+	var die_id: int = _selected_die_id
+	_selected_die_id = -1
+	_resolve_die_pawn_choice(die_id, pawn)
 
 
-## Joue `pawn` avec le dé `_pending_dice[die_index]`, que le choix vienne
-## d'un clic joueur (_on_pawn_selected) ou d'un coup forcé auto-joué
-## (_offer_selection, quand un seul pion est légal pour ce dé). `die_index`
-## n'est pas toujours 0 : voir la règle de priorité du pool de dés ci-dessus.
-func _play_pawn(pawn: Dictionary, die_index: int = 0) -> void:
-	var entry: Dictionary = _pending_dice[die_index]
+## Coeur du filet de sécurité anti-gâchis (§8 révisé, voir rule_engine.gd) :
+## joue le dé choisi normalement sur `pawn`, SAUF si cela gâcherait un unique
+## autre dé du pool ET qu'un mouvement combiné légal existe pour ce même
+## pion — auquel cas on fusionne silencieusement les deux dés en un seul coup
+## au lieu de perdre un dé. Dans tous les autres cas, le choix du joueur est
+## joué tel quel (pas de réordonnancement automatique).
+func _resolve_die_pawn_choice(chosen_id: int, pawn: Dictionary) -> void:
+	var chosen_entry: Dictionary = _pool_entry_by_id(chosen_id)
+	if chosen_entry.is_empty():
+		return
 
+	var other_entries: Array = dice_pool.filter(func(e): return e.id != chosen_id)
+	var wasted_id: int = RuleEngine.find_wasted_die_id(
+		active_player, board_manager.all_pawns, pawn.id,
+		chosen_entry.value, other_entries, locked_pawn_ids
+	)
+	if wasted_id != -1:
+		var wasted_entry: Dictionary = _pool_entry_by_id(wasted_id)
+		var combo: Dictionary = RuleEngine.try_combined_move(
+			pawn, chosen_entry.value, wasted_entry.value, board_manager.all_pawns
+		)
+		if combo.legal:
+			_play_combined_move(pawn, chosen_entry, wasted_entry)
+			return
+
+	_play_pawn(pawn, chosen_entry)
+
+
+## Joue `pawn` avec le dé de pool `entry`, que le choix vienne d'un clic
+## joueur ou d'un coup forcé auto-joué (select_die(), quand un seul pion est
+## légal pour ce dé).
+func _play_pawn(pawn: Dictionary, entry: Dictionary) -> void:
 	# Snapshot AVANT toute mutation : apply_move() va muter pawn.state/progress
 	# (et ceux de la victime en cas de capture) en place, donc c'est le seul
 	# moyen pour PawnController de connaître le point de départ de l'animation.
@@ -283,8 +282,8 @@ func _play_pawn(pawn: Dictionary, die_index: int = 0) -> void:
 		return
 
 	_last_result = result
-	dice_system.mark_used(entry.die)
-	_pending_dice.remove_at(die_index)
+	_remove_from_pool(entry.id)
+	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 
 	# Publie les signaux de haut niveau (§11.2) AVANT l'animation.
 	GameEvents.move_validated.emit(pawn, entry.value, result)
@@ -299,14 +298,14 @@ func _play_pawn(pawn: Dictionary, die_index: int = 0) -> void:
 	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
 
 
-## Joue les DEUX dés en attente en une seule action pour `pawn` (règle de
-## priorité du pool, Tier 3 — voir RuleEngine.select_pool_preserving_pawns()) :
-## utilisé quand jouer les dés séparément verrouillerait `pawn` par une
-## capture en gaspillant l'autre dé sans aucune alternative. La case qui
-## aurait normalement capturé devient une simple case de transit.
-func _play_combined_move(pawn: Dictionary) -> void:
-	var value_a: int = _pending_dice[0].value
-	var value_b: int = _pending_dice[1].value
+## Joue LES DEUX dés `entry_a`/`entry_b` en une seule action pour `pawn`
+## (filet anti-gâchis, voir _resolve_die_pawn_choice()) : utilisé quand jouer
+## les dés séparément gâcherait `entry_b` (verrouillage post-capture sur
+## `entry_a` par exemple) alors qu'un mouvement combiné l'évite. La case qui
+## aurait normalement capturé/verrouillé devient une simple case de transit.
+func _play_combined_move(pawn: Dictionary, entry_a: Dictionary, entry_b: Dictionary) -> void:
+	var value_a: int = entry_a.value
+	var value_b: int = entry_b.value
 	var old_state: int = pawn.state
 	var old_progress: int = pawn.progress
 
@@ -329,18 +328,51 @@ func _play_combined_move(pawn: Dictionary) -> void:
 		return
 
 	_last_result = result
-	dice_system.mark_used(_pending_dice[0].die)
-	dice_system.mark_used(_pending_dice[1].die)
-	_pending_dice.clear()
+	_remove_from_pool(entry_a.id)
+	_remove_from_pool(entry_b.id)
+	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 
 	GameEvents.move_validated.emit(pawn, value_a + value_b, result)
 	if result.capture:
-		locked_pawn_ids.append(pawn.id)  # sans effet ce tour (plus de dé), mais cohérent
+		locked_pawn_ids.append(pawn.id)  # sans effet ce tour (dés consommés), mais cohérent
 		GameEvents.pawn_captured.emit(result.captured_pawn, pawn)
 
 	_change_state(TurnState.MOVING)
 	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, value_a + value_b, capture_info, true)
 	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
+
+
+# ----------------------------------------------------------------------------
+# Helpers pool
+# ----------------------------------------------------------------------------
+func _pool_entry_by_id(id: int) -> Dictionary:
+	for entry in dice_pool:
+		if entry.id == id:
+			return entry
+	return {}
+
+
+func _remove_from_pool(id: int) -> void:
+	for i in range(dice_pool.size()):
+		if dice_pool[i].id == id:
+			dice_pool.remove_at(i)
+			return
+
+
+## Retire silencieusement du pool les dés devenus injouables par AUCUN pion
+## (verrouillage post-capture, pions finis...) pour ne jamais laisser un dé
+## mort-vivant affiché dans l'UI. Appelé après construction du pool et après
+## chaque coup joué.
+func _prune_dead_dice() -> void:
+	var pruned: bool = false
+	var i: int = dice_pool.size() - 1
+	while i >= 0:
+		if RuleEngine.is_dice_value_unusable(active_player, board_manager.all_pawns, dice_pool[i].value, locked_pawn_ids):
+			dice_pool.remove_at(i)
+			pruned = true
+		i -= 1
+	if pruned:
+		GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 
 
 # ----------------------------------------------------------------------------
@@ -363,47 +395,41 @@ func _on_move_animation_done(pawn: Dictionary, _dice_value: int) -> void:
 
 
 # ----------------------------------------------------------------------------
-# État 6 : résolution post-coup (victoire ? encore des dés ? extra tour ?)
+# État 6 : résolution post-coup (victoire ? encore des dés dans le pool ?)
 # ----------------------------------------------------------------------------
 func _after_move_resolved() -> void:
-	# 1. Victoire ? (§2.3, L12) — vérifié même pendant un extra tour.
+	# 1. Victoire ? (§2.3, L12) — vérifié même avec des dés restants dans le pool.
 	var winner: int = RuleEngine.check_victory(board_manager.all_pawns)
 	if winner != -1:
 		_change_state(TurnState.GAME_OVER)
 		GameEvents.victory.emit(winner)
 		return
 
-	# 2. Reste-t-il des dés jouables ? Si oui, on continue la sélection.
-	if not _pending_dice.is_empty() and not dice_system.all_dice_consumed():
-		_change_state(TurnState.WAITING_FOR_SELECTION)
-		_offer_selection()
-		return
+	# 2. Reste-t-il des dés jouables dans le pool ? Si oui, on continue.
+	if not dice_pool.is_empty():
+		_prune_dead_dice()
+		if not dice_pool.is_empty():
+			_change_state(TurnState.WAITING_FOR_SELECTION)
+			return
 
-	# 3. Tous les dés sont consommés : fin du tour (extra tour si double six).
-	#    §5.3 : si on a atteint 3 lancers consécutifs, on interdit l'extra tour.
-	var grant_extra: bool = _is_double_six and consecutive_rolls < BoardConfig.MAX_CONSECUTIVE_ROLLS
-	_end_turn(grant_extra, "turn_resolved")
+	# 3. Pool vide : fin du tour. Le chaînage des double six (§5.1) a déjà été
+	#    entièrement résolu en amont dans _run_roll_chain() — il n'y a plus de
+	#    notion d'"extra tour accordé ici", le tour avance toujours.
+	_end_turn("all_dice_consumed")
 
 
 # ----------------------------------------------------------------------------
-# État 6 -> 1 : termine le tour courant et passe au suivant
+# État 6 -> 1 : termine le tour courant et passe au joueur suivant
 # ----------------------------------------------------------------------------
-func _end_turn(grant_extra: bool, reason: String) -> void:
+func _end_turn(reason: String) -> void:
 	var previous: int = active_player
 	locked_pawn_ids.clear()
-	dice_system.reset()
-	_pending_dice.clear()
-	_is_double_six = false
+	dice_pool.clear()
+	_selected_die_id = -1
 
-	if not grant_extra:
-		# Joueur suivant (ordre horaire, §5.1).
-		active_player = (active_player + 1) % BoardConfig.PLAYER_COUNT
-		consecutive_rolls = 0
-	else:
-		# Extra tour : même joueur, le compteur de lancers reste (§5.3 cumule).
-		pass
+	active_player = (active_player + 1) % BoardConfig.PLAYER_COUNT
 
-	GameEvents.turn_ended.emit(previous, active_player, grant_extra)
+	GameEvents.turn_ended.emit(previous, active_player)
 	_change_state(TurnState.WAITING_FOR_ROLL)
 
 

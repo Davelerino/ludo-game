@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://uimanagerludo3d"]
+[gd_scene load_steps=5 format=3 uid="uid://uimanagerludo3d"]
 
 [ext_resource type="Script" path="res://ui/hud/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://ui/dice/dice_view.gd" id="2_dice"]
 [ext_resource type="Script" path="res://ui/feedback/feedback_layer.gd" id="3_fb"]
+[ext_resource type="Script" path="res://ui/dice/dice_pool_view.gd" id="4_pool"]
 
 [node name="UIManager" type="CanvasLayer"]
 
@@ -27,6 +28,18 @@ offset_right = 230.0
 offset_bottom = -10.0
 grow_vertical = 0
 script = ExtResource("2_dice")
+
+[node name="DicePoolView" type="Control" parent="."]
+custom_minimum_size = Vector2(320, 60)
+layout_mode = 1
+anchors_preset = 2
+anchor_bottom = 1.0
+offset_left = 240.0
+offset_top = -90.0
+offset_right = 560.0
+offset_bottom = -10.0
+grow_vertical = 0
+script = ExtResource("4_pool")
 
 [node name="FeedbackLayer" type="Control" parent="."]
 layout_mode = 3

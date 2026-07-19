@@ -35,15 +35,16 @@ func _init() -> void:
 	test_home_lane_exact_finish()
 	test_no_barrier_effect_in_home_lane()
 	test_victory_detection()
-	test_pool_priority_forces_non_capturing_order()
-	test_pool_priority_combined_move_avoids_capture_on_ring()
-	test_pool_priority_truly_unavoidable_even_with_combined_move()
-	test_pool_priority_no_restriction_when_no_conflict()
+	test_has_any_legal_move_over_pool()
+	test_find_wasted_die_id_single_casualty()
+	test_find_wasted_die_id_no_conflict()
+	test_find_wasted_die_id_ambiguous_multi_casualty()
+	test_combined_move_avoids_capture_on_ring()
+	test_combined_move_blocked_falls_back()
 	test_combined_yard_exit_avoids_capture()
 	test_combined_yard_exit_blocked_by_barrier_falls_back()
 	test_combined_move_overshoot_illegal()
 	test_combined_yard_exit_blocked_by_ally_barrier_on_start_tile()
-	test_pool_priority_multiple_combined_candidates()
 
 	print("\n=== Résultat : %d PASS / %d FAIL ===" % [_pass_count, _fail_count])
 	quit(0 if _fail_count == 0 else 1)
@@ -222,43 +223,83 @@ func test_victory_detection() -> void:
 
 
 # ----------------------------------------------------------------------------
-# Règle maison : priorité de consommation du pool de dés (§8 de rule_engine.gd)
+# Pool de dés généralisé à N dés (has_any_legal_move) + filet anti-gâchis
+# manuel (find_wasted_die_id, §8 de rule_engine.gd)
 # ----------------------------------------------------------------------------
 
-func test_pool_priority_forces_non_capturing_order() -> void:
-	print("-- test_pool_priority_forces_non_capturing_order (pool complet > capture) --")
-	# mover (joueur 0) progress=10. Die "A"=4 -> ring_index 14, capture un
-	# ennemi seul là -> mover verrouillé -> plus aucun pion pour die "B"=3
-	# (les autres pions du joueur 0 sont au yard, besoin d'un 6). Die "B"=3
-	# d'abord -> 10->13 (case vide, pas de capture) -> mover reste libre ->
-	# die "A"=4 ensuite -> 13->17 (l'ennemi en 14 n'est que traversé, pas sur
-	# la case d'atterrissage : pas de capture). Les DEUX dés sont alors joués.
+func test_has_any_legal_move_over_pool() -> void:
+	print("-- test_has_any_legal_move_over_pool (généralisé à un Array de valeurs) --")
+	var mover: Dictionary = _pawn_ring(0, 0, 5)
+	var all_pawns: Array = [mover, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+	_assert(RuleEngine.has_any_legal_move(0, all_pawns, [6, 6, 4, 2], []),
+		"au moins un dé du pool (4 valeurs, avec doublons) offre un coup légal")
+	_assert(RuleEngine.has_any_legal_move(0, all_pawns, [4, 4, 4, 4], []),
+		"un pool où toutes les valeurs sont identiques (double réel) est géré sans erreur")
+
+	var stuck: Dictionary = _pawn_ring(0, 0, 55)
+	stuck.state = PawnState.HOME_LANE
+	var stuck_pawns: Array = [stuck, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+	_assert(not RuleEngine.has_any_legal_move(0, stuck_pawns, [5, 4, 3], []),
+		"aucun dé du pool n'offre de coup légal (overshoot en home lane, yard bloqué sans 6)")
+
+
+func test_find_wasted_die_id_single_casualty() -> void:
+	print("-- test_find_wasted_die_id_single_casualty (un seul dé gâché -> id retourné) --")
+	# mover (joueur 0) progress=10. Jouer chosen_value=4 capture l'ennemi seul
+	# en ring 14 -> mover verrouillé (§8.3/L10) -> plus aucun pion pour la
+	# valeur 3 (les autres pions du joueur 0 sont au yard, besoin d'un 6).
 	var mover: Dictionary = _pawn_ring(0, 0, 10)
 	var enemy: Dictionary = _pawn_ring(10, 1, 1)  # ring_index (13+1)%52 = 14
 	var all_pawns: Array = [mover, enemy, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
 
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
-	_assert(choice.die_index == 1, "l'ordre choisi joue d'abord le second dé (3), pas le premier (4)")
-	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
-		"le pion mover est le seul candidat retenu pour cet ordre (pas de capture)")
+	var wasted_id: int = RuleEngine.find_wasted_die_id(0, all_pawns, mover.id, 4, [{"id": 1, "value": 3}], [])
+	_assert(wasted_id == 1, "jouer le dé 4 sur mover gâcherait le dé id=1 (valeur 3) -> son id est retourné")
 
 
-func test_pool_priority_combined_move_avoids_capture_on_ring() -> void:
-	print("-- test_pool_priority_combined_move_avoids_capture_on_ring (Tier 3 : mouvement combiné) --")
-	# Aucun réordonnancement ne marche ici (les DEUX dés mènent chacun à une
-	# capture qui verrouille le seul mover) — MAIS fusionner les deux dés en
-	# un seul mouvement (10 -> 17) évite les deux captures : les ennemis en
-	# 14 et 13 ne sont que traversés, pas atterris dessus.
+func test_find_wasted_die_id_no_conflict() -> void:
+	print("-- test_find_wasted_die_id_no_conflict (pas de capture, pas de conflit) --")
+	# Aucune capture possible ici : jouer 4 sur mover ne le verrouille pas, il
+	# reste candidat pour jouer 3 ensuite -> rien n'est gâché.
+	var mover: Dictionary = _pawn_ring(0, 0, 5)
+	var all_pawns: Array = [mover, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+
+	var wasted_id: int = RuleEngine.find_wasted_die_id(0, all_pawns, mover.id, 4, [{"id": 1, "value": 3}], [])
+	_assert(wasted_id == -1, "aucun dé n'est gâché : le mouvement combiné n'est pas nécessaire")
+
+
+func test_find_wasted_die_id_ambiguous_multi_casualty() -> void:
+	print("-- test_find_wasted_die_id_ambiguous_multi_casualty (2 dés gâchés à la fois -> -1) --")
+	# Même mise en place que test_find_wasted_die_id_single_casualty, mais
+	# avec un pool élargi à 3 dés (4, 3, 5) : jouer 4 verrouille mover et
+	# gâche À LA FOIS le dé 3 ET le dé 5 (aucun autre pion ne les joue).
+	# Cas ambigu : on ne devine pas lequel sauver via un mouvement combiné à
+	# 2 dés seulement -> -1, comportement normal (la perte est acceptée).
+	var mover: Dictionary = _pawn_ring(0, 0, 10)
+	var enemy: Dictionary = _pawn_ring(10, 1, 1)  # ring_index (13+1)%52 = 14
+	var all_pawns: Array = [mover, enemy, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
+
+	var other_dice: Array = [{"id": 1, "value": 3}, {"id": 2, "value": 5}]
+	var wasted_id: int = RuleEngine.find_wasted_die_id(0, all_pawns, mover.id, 4, other_dice, [])
+	_assert(wasted_id == -1, "deux dés seraient gâchés simultanément -> cas ambigu, pas d'auto-combine")
+
+
+# ----------------------------------------------------------------------------
+# Mouvement combiné (RuleEngine.try_combined_move / apply_combined_move)
+# ----------------------------------------------------------------------------
+
+func test_combined_move_avoids_capture_on_ring() -> void:
+	print("-- test_combined_move_avoids_capture_on_ring (filet anti-gâchis : mouvement combiné) --")
+	# Jouer les dés 4 et 3 séparément mènerait chacun à une capture qui
+	# verrouillerait le seul mover — MAIS fusionner les deux dés en un seul
+	# mouvement (10 -> 17) évite les deux captures : les ennemis en 14 et 13
+	# ne sont que traversés, pas atterris dessus.
 	var mover: Dictionary = _pawn_ring(0, 0, 10)
 	var enemy_a: Dictionary = _pawn_ring(10, 1, 1)   # ring_index (13+1)%52 = 14 (atteint par le dé 4 seul)
 	var enemy_b: Dictionary = _pawn_ring(11, 2, 39)  # ring_index (26+39)%52 = 13 (atteint par le dé 3 seul)
 	var all_pawns: Array = [mover, enemy_a, enemy_b, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
 
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
-	_assert(choice.pawns.is_empty(), "aucun réordonnancement simple n'est retenu (tiers 1/2 vides)")
-	_assert(choice.combined_candidates.size() == 1 and choice.combined_candidates[0].pawn.id == 0,
-		"le mouvement combiné est proposé pour le pion mover")
-	_assert(choice.combined_candidates[0].preview.new_progress == 17 and not choice.combined_candidates[0].preview.capture,
+	var preview: Dictionary = RuleEngine.try_combined_move(mover, 4, 3, all_pawns)
+	_assert(preview.legal and preview.new_progress == 17 and not preview.capture,
 		"le mouvement combiné atterrit en progress 17 sans capturer aucun des deux ennemis traversés")
 
 	var result: Dictionary = RuleEngine.apply_combined_move(mover, 4, 3, all_pawns)
@@ -267,12 +308,12 @@ func test_pool_priority_combined_move_avoids_capture_on_ring() -> void:
 		"les deux ennemis traversés restent RING (non capturés)")
 
 
-func test_pool_priority_truly_unavoidable_even_with_combined_move() -> void:
-	print("-- test_pool_priority_truly_unavoidable_even_with_combined_move --")
+func test_combined_move_blocked_falls_back() -> void:
+	print("-- test_combined_move_blocked_falls_back --")
 	# Même mise en place que ci-dessus, MAIS une barrière ennemie occupe
 	# exactement la case d'arrivée du mouvement combiné (ring 17, joueur 3) :
-	# cette fois, ni le réordonnancement NI la fusion des dés ne fonctionnent
-	# -> la perte d'un dé est vraiment inévitable, comportement normal.
+	# le mouvement combiné échoue -> repli sur un coup normal (perte d'un dé
+	# acceptée, voir find_wasted_die_id_ambiguous / no auto-combine possible).
 	var mover: Dictionary = _pawn_ring(0, 0, 10)
 	var enemy_a: Dictionary = _pawn_ring(10, 1, 1)   # ring 14
 	var enemy_b: Dictionary = _pawn_ring(11, 2, 39)  # ring 13
@@ -280,30 +321,9 @@ func test_pool_priority_truly_unavoidable_even_with_combined_move() -> void:
 	var barrier_b: Dictionary = _pawn_ring(13, 3, 30)  # idem -> barrière à 2 pions en 17
 	var all_pawns: Array = [mover, enemy_a, enemy_b, barrier_a, barrier_b, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
 
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
-	_assert(choice.die_index == 0, "aucun ordre ni mouvement combiné ne préserve le pool -> comportement normal")
-	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
-		"le pion mover reste le seul candidat (capture autorisée, perte d'un dé inévitable)")
-	_assert(choice.combined_candidates.is_empty(),
-		"le mouvement combiné est bloqué par la barrière ennemie sur la case d'arrivée (ring 17)")
+	var preview: Dictionary = RuleEngine.try_combined_move(mover, 4, 3, all_pawns)
+	_assert(not preview.legal, "le mouvement combiné est bloqué par la barrière ennemie sur la case d'arrivée (ring 17)")
 
-
-func test_pool_priority_no_restriction_when_no_conflict() -> void:
-	print("-- test_pool_priority_no_restriction_when_no_conflict (pas de capture, pas de conflit) --")
-	# Aucune capture possible ici : les deux ordres préservent le pool sans
-	# distinction, la sélection ne doit rien restreindre (comportement normal).
-	var mover: Dictionary = _pawn_ring(0, 0, 5)
-	var all_pawns: Array = [mover, _pawn_yard(1, 0), _pawn_yard(2, 0), _pawn_yard(3, 0)]
-
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 4, 3, [])
-	_assert(choice.die_index == 0, "sans conflit, l'ordre naturel (premier dé) est conservé")
-	_assert(choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
-		"le pion reste jouable normalement, aucune restriction appliquée")
-
-
-# ----------------------------------------------------------------------------
-# Mouvement combiné (RuleEngine.try_combined_move / apply_combined_move)
-# ----------------------------------------------------------------------------
 
 func test_combined_yard_exit_avoids_capture() -> void:
 	print("-- test_combined_yard_exit_avoids_capture (sortie de Maison combinée) --")
@@ -314,10 +334,8 @@ func test_combined_yard_exit_avoids_capture() -> void:
 	var enemy: Dictionary = _pawn_ring(10, 1, 39)  # ring_index (13+39)%52 = 0 = start tile du joueur 0
 	var all_pawns: Array = [mover, enemy]
 
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 3, 6, [])
-	_assert(choice.combined_candidates.size() == 1 and choice.combined_candidates[0].pawn.id == 0,
-		"le mouvement combiné est proposé pour mover")
-	_assert(choice.combined_candidates[0].preview.new_progress == 3 and not choice.combined_candidates[0].preview.capture,
+	var preview: Dictionary = RuleEngine.try_combined_move(mover, 3, 6, all_pawns)
+	_assert(preview.legal and preview.new_progress == 3 and not preview.capture,
 		"mover atterrit en progress 3 (continuation), sans capturer l'ennemi de la start tile")
 
 	var result: Dictionary = RuleEngine.apply_combined_move(mover, 3, 6, all_pawns)
@@ -335,15 +353,9 @@ func test_combined_yard_exit_blocked_by_barrier_falls_back() -> void:
 	var barrier_b: Dictionary = _pawn_ring(21, 2, 27)  # idem -> barrière à 2 pions en 1
 	var all_pawns: Array = [mover, barrier_a, barrier_b]
 
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 6, 3, [])
-	_assert(choice.die_index == 0 and choice.pawns.size() == 1 and choice.pawns[0].pawn.id == 0,
-		"repli sur le dé de tête (sortie simple, sans mouvement combiné)")
-	_assert(choice.combined_candidates.is_empty(),
-		"le mouvement combiné échoue (barrière en ring 1, sur le chemin de continuation)")
-
 	var preview: Dictionary = RuleEngine.try_combined_move(mover, 6, 3, all_pawns)
 	_assert(not preview.legal and preview.reason == "path_blocked_by_barrier",
-		"try_combined_move confirme le blocage par la barrière")
+		"try_combined_move confirme le blocage par la barrière (barrière en ring 1, sur le chemin de continuation)")
 
 
 func test_combined_move_overshoot_illegal() -> void:
@@ -370,23 +382,3 @@ func test_combined_yard_exit_blocked_by_ally_barrier_on_start_tile() -> void:
 	var result: Dictionary = RuleEngine.try_combined_move(mover, 6, 3, all_pawns)
 	_assert(not result.legal and result.reason == "path_blocked_by_barrier",
 		"la barrière alliée sur la start tile bloque aussi le passage (pas seulement les barrières ennemies)")
-
-
-func test_pool_priority_multiple_combined_candidates() -> void:
-	print("-- test_pool_priority_multiple_combined_candidates --")
-	# Deux pions du même joueur, tous deux à la Maison : chacun peut
-	# individuellement sortir+capturer (verrouillage), donc ni l'un ni
-	# l'autre ne préserve le pool seul (tiers 1/2 vides) — mais chacun peut
-	# AUSSI faire le mouvement combiné : les deux doivent être proposés,
-	# pas silencieusement réduits à un seul.
-	var pawn_a: Dictionary = _pawn_yard(0, 0)
-	var pawn_b: Dictionary = _pawn_yard(1, 0)
-	var enemy: Dictionary = _pawn_ring(20, 1, 39)  # ring_index (13+39)%52 = 0 = start tile du joueur 0
-	var all_pawns: Array = [pawn_a, pawn_b, enemy]
-
-	var choice: Dictionary = RuleEngine.select_pool_preserving_pawns(0, all_pawns, 6, 3, [])
-	_assert(choice.pawns.is_empty(), "aucun réordonnancement simple n'est retenu (tiers 1/2 vides)")
-	_assert(choice.combined_candidates.size() == 2,
-		"les DEUX pions sont proposés pour le mouvement combiné, pas un seul silencieusement retenu")
-	var candidate_ids: Array = choice.combined_candidates.map(func(e): return e.pawn.id)
-	_assert(0 in candidate_ids and 1 in candidate_ids, "les ids des deux pions sont bien présents")

@@ -13,7 +13,7 @@ godot --headless --script res://tests/test_rule_engine.gd
 Résultat attendu :
 
 ```
-19 PASS / 0 FAIL
+39 PASS / 0 FAIL
 ```
 
 ## Couverture (cas limites du GDD)
@@ -36,6 +36,16 @@ Résultat attendu :
 | `test_home_lane_exact_finish` | H1, H5 |
 | `test_no_barrier_effect_in_home_lane` | §7.5 |
 | `test_victory_detection` | §2.3, L12 |
+| `test_has_any_legal_move_over_pool` | §5.1 (pool à N dés) |
+| `test_find_wasted_die_id_single_casualty` | §8 (filet anti-gâchis) |
+| `test_find_wasted_die_id_no_conflict` | §8 (filet anti-gâchis) |
+| `test_find_wasted_die_id_ambiguous_multi_casualty` | §8 (filet anti-gâchis) |
+| `test_combined_move_avoids_capture_on_ring` | §8 (mouvement combiné) |
+| `test_combined_move_blocked_falls_back` | §8 (mouvement combiné) |
+| `test_combined_yard_exit_avoids_capture` | §4.2 (sortie de Maison combinée) |
+| `test_combined_yard_exit_blocked_by_barrier_falls_back` | B1/B2/B6 |
+| `test_combined_move_overshoot_illegal` | H4 (branche générique) |
+| `test_combined_yard_exit_blocked_by_ally_barrier_on_start_tile` | B6 |
 
 **Zone de capture** : un pion capturé va dans la zone de capture du joueur
 qui l'a capturé (`PawnState.CAPTURED`, `captor_id`), pas dans son propre

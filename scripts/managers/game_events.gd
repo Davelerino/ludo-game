@@ -19,9 +19,21 @@ extends Node
 ## ============================================================================
 
 # --- Dés (DiceSystem) ---
-## Émis quand les deux dés ont été lancés. dice_a/dice_b ∈ [1,6], is_double
-## vaut true sur un double (notamment le double 6 -> extra tour, §5.1).
+## Émis à chaque lancer PHYSIQUE d'une paire de dés (dice_a/dice_b ∈ [1,6]).
+## is_double vaut true sur un double. Peut être émis plusieurs fois d'affilée
+## pendant un enchaînement de double six (§5.1) — voir dice_pool_changed
+## ci-dessous pour l'état agrégé du pool qui en résulte.
 signal dice_rolled(dice_a: int, dice_b: int, is_double: bool)
+
+## Émis quand le pool de dés du tour est (re)construit après un enchaînement
+## de lancers, ou qu'il rétrécit après qu'un coup ait consommé un ou deux dés.
+## `pool` est un Array de {"id": int, "value": int} (voir TurnManager.dice_pool).
+signal dice_pool_changed(player_id: int, pool: Array)
+
+## Émis quand un 3e double six consécutif annule le tour entier (§5.3
+## révisé) : le pool est vidé, aucun pion ne bouge, le tour passe directement
+## au joueur suivant (turn_ended suit immédiatement).
+signal turn_busted(player_id: int)
 
 # --- RuleEngine (validation) ---
 ## Émis AVANT d'appliquer un coup, pour signaler qu'il a été validé.
@@ -51,10 +63,11 @@ signal turn_state_changed(old_state: int, new_state: int)
 ## soit retiré). Utile pour l'UI/debug, qui n'a pas à réévaluer
 ## RuleEngine.get_legal_target_pawns() elle-même.
 signal pawns_offered(player_id: int, pawn_ids: Array, dice_value: int)
-## Émis quand un tour se termine et qu'on passe au joueur suivant (ou qu'un
-## extra tour est accordé au même joueur, §5.1). `granted_extra_turn` vaut
-## true dans ce dernier cas.
-signal turn_ended(previous_player: int, next_player: int, granted_extra_turn: bool)
+## Émis quand un tour se termine et qu'on passe au joueur suivant. Le
+## chaînage des double six (§5.1) est désormais entièrement résolu EN AMONT,
+## dans TurnManager._run_roll_chain() — il n'y a donc plus de notion d'"extra
+## tour accordé ici" : ce signal signifie toujours une avance de joueur.
+signal turn_ended(previous_player: int, next_player: int)
 
 # --- Partie (§2.3, L12) ---
 ## Émis dès qu'un joueur gagne. `winner_id` ∈ [0, PLAYER_COUNT-1].
