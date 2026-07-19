@@ -142,9 +142,6 @@ func move_pawn_visual(
 		GameEvents.pawn_moved.emit(pawn, dice_value)
 		return
 
-	var duration: float = board_tuning.move_duration if board_tuning else 0.35
-	var tween: Tween = create_tween()
-
 	# (b)/(c) sortie de yard ou évasion de zone de capture : un seul saut, pas
 	# de cases intermédiaires (aucune n'existe entre une zone décorative et
 	# l'anneau/le yard).
@@ -153,17 +150,24 @@ func move_pawn_visual(
 		or (old_state == PawnState.CAPTURED and pawn.state == PawnState.MAISON)
 	)
 
-	if is_single_hop:
-		tween.tween_property(node, "position", final_target, duration)\
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	else:
-		# (a) mouvement normal RING/HOME_LANE : un hop par case intermédiaire.
+	# (a) mouvement normal RING/HOME_LANE : un saut par case intermédiaire ;
+	# is_single_hop : aucune case intermédiaire, juste `final_target`.
+	var waypoints: Array[Vector3] = []
+	if not is_single_hop:
 		for step_progress in range(old_progress + 1, pawn.progress):
-			var waypoint: Vector3 = board_manager.world_position_for_progress(pawn.player, step_progress)
-			tween.tween_property(node, "position", waypoint, duration)\
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(node, "position", final_target, duration)\
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			waypoints.append(board_manager.world_position_for_progress(pawn.player, step_progress))
+	waypoints.append(final_target)
+
+	var total_duration: float = board_tuning.move_total_duration if board_tuning else 0.5
+	var min_hop: float = board_tuning.move_min_hop_duration if board_tuning else 0.12
+	var height: float = board_tuning.hop_height if board_tuning else 0.18
+	var hop_duration: float = compute_hop_duration(total_duration, min_hop, waypoints.size())
+
+	var tween: Tween = create_tween()
+	var current_from: Vector3 = node.position
+	for waypoint in waypoints:
+		_append_hop(tween, node, current_from, waypoint, hop_duration, height)
+		current_from = waypoint
 
 	if not capture_info.is_empty():
 		_append_capture_stage(tween, capture_info)
@@ -184,6 +188,7 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 	if victim_node == null or not is_instance_valid(victim_node):
 		return
 	var cap_duration: float = board_tuning.capture_duration if board_tuning else 0.5
+	var height: float = board_tuning.hop_height if board_tuning else 0.18
 	# victim.state est déjà CAPTURED (apply_move() l'a déjà mutée par
 	# référence), donc cell_world_position(victim) résout sa nouvelle case de
 	# zone de capture.
@@ -191,8 +196,25 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 	# Point de départ explicite (case ring d'avant capture, dérivée du snapshot
 	# pré-mutation) plutôt que la transform courante du nœud — plus robuste.
 	var victim_from: Vector3 = board_manager.world_position_for_progress(victim.player, capture_info.old_progress)
-	tween.tween_property(victim_node, "position", victim_target, cap_duration)\
-		.from(victim_from)\
+	_append_hop(tween, victim_node, victim_from, victim_target, cap_duration, height)
+
+
+## Durée d'un saut individuel : le budget total (`total_duration`) est réparti
+## sur toutes les cases du trajet (`waypoint_count`), avec un plancher
+## (`min_hop_duration`) pour rester lisible sur les longs coups — voir
+## tests/test_pawn_hop_duration.gd. Fonction pure, testable sans scène.
+static func compute_hop_duration(total_duration: float, min_hop_duration: float, waypoint_count: int) -> float:
+	return max(min_hop_duration, total_duration / max(1, waypoint_count))
+
+
+## Ajoute un segment de saut en arc (parabole verticale) au tween, de
+## `from_pos` vers `to_pos`. Remplace le glissement plat : `t` est déjà "eased"
+## par set_trans()/set_ease() avant d'arriver dans le callback (comportement
+## standard de tween_method(), identique à tween_property()).
+func _append_hop(tween: Tween, node: Node3D, from_pos: Vector3, to_pos: Vector3, duration: float, height: float) -> void:
+	var updater := func(t: float) -> void:
+		node.position = from_pos.lerp(to_pos, t) + Vector3.UP * height * (4.0 * t * (1.0 - t))
+	tween.tween_method(updater, 0.0, 1.0, duration)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
