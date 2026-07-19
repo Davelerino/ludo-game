@@ -66,8 +66,12 @@ var locked_pawn_ids: Array = []
 ## Pool de dés en attente ce tour : Array de {"id": int, "value": int}.
 ## Entièrement construit par _run_roll_chain() AVANT tout choix du joueur
 ## (§5.1 : fini d'attendre la fin du tour pour la relance du double six, tout
-## est dans le pool dès le départ) ; rétrécit au fil des coups joués (voir
-## _remove_from_pool()) et de l'élagage des dés morts (_prune_dead_dice()).
+## est dans le pool dès le départ) ; ne rétrécit QUE lorsqu'un dé est
+## effectivement joué (voir _remove_from_pool()) — un dé sans coup légal à
+## l'instant T reste dans le pool, car jouer un AUTRE dé d'abord peut le
+## rendre jouable ensuite (ex. sortir un pion de la Maison avec un 6 rend un 4
+## jouable). L'UI grise juste les dés temporairement injouables
+## (dice_pool_view.gd:_is_dead()), elle ne les retire pas.
 var dice_pool: Array = []
 
 ## Id (dans dice_pool) du dé actuellement armé par select_die(), en attente
@@ -172,11 +176,15 @@ func _resolve_checked_moves() -> void:
 	var pool_values: Array = dice_pool.map(func(e): return e.value)
 
 	# Cas L2/L3/L4 : aucun coup possible avec AUCUN dé du pool -> tour perdu.
+	# NOTE : on ne retire PAS ici les dés individuellement injouables À CET
+	# INSTANT (ex. un 4 alors que les 4 pions sont encore à la Maison) — jouer
+	# un AUTRE dé du pool en premier (ex. le 6 qui fait sortir un pion) peut
+	# rendre ce dé jouable ensuite. Un dé ne quitte le pool que lorsqu'il est
+	# effectivement joué (_remove_from_pool()), jamais par élagage préventif.
 	if not RuleEngine.has_any_legal_move(active_player, board_manager.all_pawns, pool_values, locked_pawn_ids):
 		_end_turn("no_legal_move")
 		return
 
-	_prune_dead_dice()
 	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 	_change_state(TurnState.WAITING_FOR_SELECTION)
 
@@ -359,22 +367,6 @@ func _remove_from_pool(id: int) -> void:
 			return
 
 
-## Retire silencieusement du pool les dés devenus injouables par AUCUN pion
-## (verrouillage post-capture, pions finis...) pour ne jamais laisser un dé
-## mort-vivant affiché dans l'UI. Appelé après construction du pool et après
-## chaque coup joué.
-func _prune_dead_dice() -> void:
-	var pruned: bool = false
-	var i: int = dice_pool.size() - 1
-	while i >= 0:
-		if RuleEngine.is_dice_value_unusable(active_player, board_manager.all_pawns, dice_pool[i].value, locked_pawn_ids):
-			dice_pool.remove_at(i)
-			pruned = true
-		i -= 1
-	if pruned:
-		GameEvents.dice_pool_changed.emit(active_player, dice_pool)
-
-
 # ----------------------------------------------------------------------------
 # État 5 -> 6 : fin de l'animation du déplacement
 # ----------------------------------------------------------------------------
@@ -405,16 +397,21 @@ func _after_move_resolved() -> void:
 		GameEvents.victory.emit(winner)
 		return
 
-	# 2. Reste-t-il des dés jouables dans le pool ? Si oui, on continue.
+	# 2. Reste-t-il au moins un dé ENCORE JOUABLE dans le pool ? Un dé qui
+	#    n'a pas de coup légal À CET INSTANT peut le redevenir après un autre
+	#    coup (voir la note dans _resolve_checked_moves()) — on ne le retire
+	#    donc pas du pool tant qu'il n'a pas été effectivement joué, on
+	#    vérifie juste si LE POOL DANS SON ENSEMBLE offre encore un coup.
 	if not dice_pool.is_empty():
-		_prune_dead_dice()
-		if not dice_pool.is_empty():
+		var pool_values: Array = dice_pool.map(func(e): return e.value)
+		if RuleEngine.has_any_legal_move(active_player, board_manager.all_pawns, pool_values, locked_pawn_ids):
 			_change_state(TurnState.WAITING_FOR_SELECTION)
 			return
 
-	# 3. Pool vide : fin du tour. Le chaînage des double six (§5.1) a déjà été
-	#    entièrement résolu en amont dans _run_roll_chain() — il n'y a plus de
-	#    notion d'"extra tour accordé ici", le tour avance toujours.
+	# 3. Pool vide, ou plus aucun dé restant n'est jouable : fin du tour. Le
+	#    chaînage des double six (§5.1) a déjà été entièrement résolu en amont
+	#    dans _run_roll_chain() — il n'y a plus de notion d'"extra tour
+	#    accordé ici", le tour avance toujours.
 	_end_turn("all_dice_consumed")
 
 

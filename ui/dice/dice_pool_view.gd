@@ -55,10 +55,13 @@ func _rebuild_buttons() -> void:
 		_hbox.add_child(btn)
 
 
-## Un dé est "mort" (grisé) si aucun pion du joueur actif ne peut le jouer,
-## par exemple parce que le seul pion capable a été verrouillé par une
-## capture ce tour-ci (§8.3/L10) — TurnManager._prune_dead_dice() finit par
-## le retirer du pool, mais on grise dès que possible pour l'UX.
+## Un dé est temporairement "mort" (grisé, mais PAS retiré du pool) si aucun
+## pion du joueur actif ne peut le jouer À CET INSTANT — par exemple parce que
+## tous les pions sont encore à la Maison (besoin d'un 6 d'abord) ou que le
+## seul pion capable a été verrouillé par une capture ce tour-ci (§8.3/L10).
+## Jouer un AUTRE dé du pool peut le rendre jouable ensuite (voir
+## TurnManager.dice_pool) : ce grisage est donc réévalué à chaque
+## reconstruction des boutons, pas figé.
 func _is_dead(value: int) -> bool:
 	if not turn_manager or not board_manager:
 		return false
