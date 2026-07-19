@@ -90,7 +90,19 @@ func setup(p_dice: DiceSystem, p_board: BoardManager, p_pawns: PawnController) -
 # ----------------------------------------------------------------------------
 func start_new_game() -> void:
 	board_manager.reset_all_to_yard()
-	active_player = 0
+	_start_turn_loop(0)
+
+
+## Démarre la boucle de tours à partir d'un plateau DÉJÀ configuré (mode
+## "Configuration manuelle de scénario", voir ScenarioState +
+## BoardManager.apply_scenario()) : ne touche PAS board_manager.all_pawns,
+## seulement la mécanique de tour.
+func start_from_scenario(active_player_id: int = 0) -> void:
+	_start_turn_loop(active_player_id)
+
+
+func _start_turn_loop(starting_player: int) -> void:
+	active_player = starting_player
 	consecutive_rolls = 0
 	locked_pawn_ids.clear()
 	_pending_dice.clear()

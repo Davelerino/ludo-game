@@ -165,6 +165,27 @@ func reset_all_to_yard() -> void:
 		pawn.captor_id = -1
 
 
+## Applique un scénario manuel (mode test, voir ui/scenario/scenario_setup.gd) :
+## mute directement state/progress/captor_id des pions EXISTANTS (trouvés par
+## id), SANS passer par RuleEngine.apply_move() — positionnement brut, pas un
+## coup validé. Les pions non mentionnés dans `entries` restent inchangés.
+## Retourne les avertissements non bloquants de RuleEngine.validate_scenario_pawn().
+func apply_scenario(entries: Array) -> Array[String]:
+	var warnings: Array[String] = []
+	for entry in entries:
+		var pawn: Dictionary = get_pawn_by_id(entry.id)
+		if pawn.is_empty():
+			warnings.append("apply_scenario: pion id=%s introuvable, ignoré." % entry.id)
+			continue
+		var reason: String = RuleEngine.validate_scenario_pawn(entry)
+		if reason != "":
+			warnings.append("apply_scenario: pion id=%d — %s (appliqué quand même)." % [entry.id, reason])
+		pawn.state = entry.state
+		pawn.progress = entry.progress
+		pawn.captor_id = entry.captor_id
+	return warnings
+
+
 # ----------------------------------------------------------------------------
 # Internes
 # ----------------------------------------------------------------------------

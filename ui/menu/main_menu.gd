@@ -9,9 +9,11 @@ extends Control
 ## ============================================================================
 
 const GAME_SCENE := "res://scenes/main.tscn"
+const SCENARIO_SCENE := "res://scenes/scenario/scenario_setup.tscn"
 const PLAYER_COLORS: Array[Color] = [Color.CRIMSON, Color.ROYAL_BLUE, Color.FOREST_GREEN, Color.GOLDENROD]
 
 var _play_button: Button
+var _scenario_button: Button
 var _quit_button: Button
 
 
@@ -62,6 +64,12 @@ func _build() -> void:
 	_play_button.pressed.connect(_on_play_pressed)
 	vbox.add_child(_play_button)
 
+	_scenario_button = Button.new()
+	_scenario_button.text = "Configurer un scénario"
+	_scenario_button.custom_minimum_size = Vector2(220, 48)
+	_scenario_button.pressed.connect(_on_scenario_pressed)
+	vbox.add_child(_scenario_button)
+
 	_quit_button = Button.new()
 	_quit_button.text = "Quitter"
 	_quit_button.custom_minimum_size = Vector2(220, 48)
@@ -71,6 +79,10 @@ func _build() -> void:
 
 func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file(GAME_SCENE)
+
+
+func _on_scenario_pressed() -> void:
+	get_tree().change_scene_to_file(SCENARIO_SCENE)
 
 
 func _on_quit_pressed() -> void:

@@ -46,8 +46,18 @@ func _ready() -> void:
 	# 4. Branche le TurnManager (autoload singleton) avec ses dépendances.
 	TurnManager.setup(dice_system, board_manager, pawn_controller)
 
-	# 5. Démarre la première partie.
-	TurnManager.start_new_game()
+	# 5. Démarre la partie : depuis zéro, ou depuis un scénario configuré
+	#    manuellement via ui/scenario/scenario_setup.gd (mode test).
+	if ScenarioState.has_pending():
+		var scenario: Dictionary = ScenarioState.consume()
+		var warnings: Array[String] = board_manager.apply_scenario(scenario.pawn_entries)
+		warnings.append_array(RuleEngine.validate_scenario(board_manager.all_pawns))
+		for w in warnings:
+			push_warning("ScenarioSetup: %s" % w)
+		pawn_controller.setup(board_manager.all_pawns)  # ré-aligne les visuels (pas d'animation).
+		TurnManager.start_from_scenario(scenario.active_player)
+	else:
+		TurnManager.start_new_game()
 
 	# 6. Injecte le TurnManager dans la DiceView (pour le bouton "Lancer").
 	var dice_view: DiceView = ui_manager.get_node_or_null("DiceView")

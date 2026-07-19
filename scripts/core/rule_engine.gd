@@ -346,3 +346,49 @@ static func check_victory(all_pawns: Array) -> int:
 		if has_player_won(player_id, all_pawns):
 			return player_id
 	return -1
+
+
+# ----------------------------------------------------------------------------
+# 7. VALIDATION DE SCÉNARIO MANUEL (mode test, voir ui/scenario/scenario_setup.gd)
+# ----------------------------------------------------------------------------
+#
+# Ce mode permet de positionner les pions "à la main" (hors de tout coup joué)
+# pour tester un scénario précis. Ces fonctions ne valident QUE la cohérence
+# interne d'une entrée (state/progress/captor_id), pas les règles de jeu
+# habituelles (barrière, capture...) — c'est un outil de dev, pas un nouveau
+# chemin de jeu validé.
+
+## Une entrée de scénario : {"id", "state", "progress", "captor_id"}.
+static func is_progress_valid_for_state(state: int, progress: int) -> bool:
+	match state:
+		PawnState.MAISON, PawnState.CAPTURED:
+			return progress == -1
+		PawnState.RING:
+			return progress >= 0 and progress < BoardConfig.HOME_ENTRY_PROGRESS
+		PawnState.HOME_LANE:
+			return progress >= BoardConfig.HOME_ENTRY_PROGRESS and progress < BoardConfig.FINISH_PROGRESS
+		PawnState.FINI:
+			return progress == BoardConfig.FINISH_PROGRESS
+	return false
+
+## Retourne une chaîne d'erreur si `entry` est incohérente, "" sinon.
+static func validate_scenario_pawn(entry: Dictionary) -> String:
+	if not is_progress_valid_for_state(entry.state, entry.progress):
+		return "progress=%s incohérent avec state=%s" % [entry.progress, PawnState.find_key(entry.state)]
+	if entry.state == PawnState.CAPTURED and (entry.captor_id < 0 or entry.captor_id >= BoardConfig.PLAYER_COUNT):
+		return "captor_id=%s invalide pour un pion CAPTURED" % entry.captor_id
+	return ""
+
+## Vérifications croisées sur un plateau déjà appliqué (all_pawns complets,
+## avec "player") : signale les cas qu'un coup normal ne produirait jamais
+## (3 joueurs ou plus empilés sur la même case d'anneau), sans bloquer —
+## juste un avertissement affiché au testeur.
+static func validate_scenario(all_pawns: Array) -> Array[String]:
+	var warnings: Array[String] = []
+	for ring_index in range(BoardConfig.RING_SIZE):
+		var distinct_players := {}
+		for p in get_pawns_on_ring_index(ring_index, all_pawns):
+			distinct_players[p.player] = true
+		if distinct_players.size() > 2:
+			warnings.append("Case anneau %d : %d joueurs différents empilés." % [ring_index, distinct_players.size()])
+	return warnings
