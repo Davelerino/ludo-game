@@ -189,6 +189,21 @@ func _offer_selection() -> void:
 			active_player, board_manager.all_pawns,
 			_pending_dice[0].value, _pending_dice[1].value, locked_pawn_ids
 		)
+		if not choice.combined_candidates.is_empty():
+			# Tier 3 : aucun réordonnancement ne préserve le pool, mais fusionner
+			# les deux dés en UN SEUL mouvement pour ce pion l'évite (la case qui
+			# aurait sinon capturé/verrouillé devient une simple case de transit).
+			var combined_ids: Array = choice.combined_candidates.map(func(e): return e.pawn.id)
+			# NOTE : cette valeur peut dépasser 6 (somme des deux dés) —
+			# seule émission de pawns_offered dans ce cas, pour affichage/debug.
+			var combined_value: int = _pending_dice[0].value + _pending_dice[1].value
+			GameEvents.pawns_offered.emit(active_player, combined_ids, combined_value)
+			if choice.combined_candidates.size() == 1:
+				_play_combined_move(choice.combined_candidates[0].pawn)
+			else:
+				_offered_die_index = -1  # sentinelle : mouvement combiné en attente
+				pawn_controller.request_selection(active_player, combined_ids)
+			return
 		die_index = choice.die_index
 		legal = choice.pawns
 	else:
@@ -226,6 +241,10 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 	if state != TurnState.WAITING_FOR_SELECTION:
 		return
 	if _pending_dice.is_empty():
+		return
+	if _offered_die_index == -1:
+		# Sentinelle posée par _offer_selection() : mouvement combiné (Tier 3).
+		_play_combined_move(pawn)
 		return
 	_play_pawn(pawn, _offered_die_index)
 
@@ -277,6 +296,50 @@ func _play_pawn(pawn: Dictionary, die_index: int = 0) -> void:
 	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, entry.value, capture_info, true)
 	# -> l'animation (mouvement + éventuelle étape de capture) appellera
 	# _on_move_animation_done via pawn_moved, une fois TOUTE l'animation finie.
+	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
+
+
+## Joue les DEUX dés en attente en une seule action pour `pawn` (règle de
+## priorité du pool, Tier 3 — voir RuleEngine.select_pool_preserving_pawns()) :
+## utilisé quand jouer les dés séparément verrouillerait `pawn` par une
+## capture en gaspillant l'autre dé sans aucune alternative. La case qui
+## aurait normalement capturé devient une simple case de transit.
+func _play_combined_move(pawn: Dictionary) -> void:
+	var value_a: int = _pending_dice[0].value
+	var value_b: int = _pending_dice[1].value
+	var old_state: int = pawn.state
+	var old_progress: int = pawn.progress
+
+	var preview: Dictionary = RuleEngine.try_combined_move(pawn, value_a, value_b, board_manager.all_pawns)
+	if not preview.legal:
+		# Sélection invalide (race) : ne devrait pas arriver, déjà vérifié par l'appelant.
+		return
+
+	var capture_info: Dictionary = {}
+	if preview.capture:
+		var victim: Dictionary = preview.captured_pawn
+		capture_info = {
+			"captured_pawn": victim,
+			"old_state": victim.state,
+			"old_progress": victim.progress,
+		}
+
+	var result: Dictionary = RuleEngine.apply_combined_move(pawn, value_a, value_b, board_manager.all_pawns)
+	if not result.legal:
+		return
+
+	_last_result = result
+	dice_system.mark_used(_pending_dice[0].die)
+	dice_system.mark_used(_pending_dice[1].die)
+	_pending_dice.clear()
+
+	GameEvents.move_validated.emit(pawn, value_a + value_b, result)
+	if result.capture:
+		locked_pawn_ids.append(pawn.id)  # sans effet ce tour (plus de dé), mais cohérent
+		GameEvents.pawn_captured.emit(result.captured_pawn, pawn)
+
+	_change_state(TurnState.MOVING)
+	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, value_a + value_b, capture_info, true)
 	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
 
 

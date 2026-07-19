@@ -459,15 +459,127 @@ static func select_pool_preserving_pawns(
 		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_first, value_second, locked_pawn_ids)
 	)
 	if not preserving_first.is_empty():
-		return {"die_index": 0, "pawns": preserving_first}
+		return {"die_index": 0, "pawns": preserving_first, "combined_candidates": []}
 
 	var legal_second: Array = get_legal_target_pawns(player_id, all_pawns, value_second, locked_pawn_ids)
 	var preserving_second: Array = legal_second.filter(func(c):
 		return _preserves_other_die(player_id, all_pawns, c.pawn.id, value_second, value_first, locked_pawn_ids)
 	)
 	if not preserving_second.is_empty():
-		return {"die_index": 1, "pawns": preserving_second}
+		return {"die_index": 1, "pawns": preserving_second, "combined_candidates": []}
 
-	# Aucun ordre ne permet de jouer les deux dés : la perte est inévitable,
-	# on ne restreint rien (comportement normal, priorité au dé de tête).
-	return {"die_index": 0, "pawns": legal_first}
+	# Tier 3 : aucun réordonnancement ne marche (tiers 1/2 vides) — un
+	# mouvement COMBINÉ (les deux dés en un seul coup pour un même pion, sans
+	# capturer sur la case qui l'aurait sinon verrouillé) évite-t-il la perte ?
+	# Renvoie une LISTE (pas un seul pion) : plusieurs pions pourraient chacun
+	# offrir un mouvement combiné valide, et le joueur doit alors pouvoir
+	# choisir, exactement comme pour les tiers 1/2.
+	var combined_candidates: Array = []
+	var seen_ids := {}
+	for candidate in legal_first + legal_second:
+		if candidate.pawn.id in seen_ids:
+			continue
+		seen_ids[candidate.pawn.id] = true
+		var preview: Dictionary = try_combined_move(candidate.pawn, value_first, value_second, all_pawns)
+		if preview.legal:
+			combined_candidates.append({"pawn": candidate.pawn, "preview": preview})
+	if not combined_candidates.is_empty():
+		return {"die_index": 0, "pawns": [], "combined_candidates": combined_candidates}
+
+	# Aucun ordre NI mouvement combiné ne permet de jouer les deux dés : la
+	# perte est inévitable, on ne restreint rien (comportement normal,
+	# priorité au dé de tête).
+	return {"die_index": 0, "pawns": legal_first, "combined_candidates": []}
+
+
+## Combine "sortie de yard" + "continuation avec le second dé" en UN SEUL
+## mouvement : le pion n'atterrit JAMAIS sur la start tile (progress 0), il la
+## traverse comme une case de transit normale (aucune capture ; seule une
+## barrière — alliée OU ennemie, comme toute case de transit — y bloquerait
+## le passage) et n'atterrit réellement qu'à
+## `continuation = (value_a + value_b) - ENTRY_DICE_VALUE` cases plus loin.
+## `continuation` ∈ [1,6] toujours (un dé vaut exactement 6, l'autre 1-6),
+## donc jamais besoin de gérer l'entrée en couloir final ici.
+static func _try_combined_yard_exit(pawn: Dictionary, value_a: int, value_b: int, all_pawns: Array) -> Dictionary:
+	if value_a != BoardConfig.ENTRY_DICE_VALUE and value_b != BoardConfig.ENTRY_DICE_VALUE:
+		return _empty_result("needs_six_to_enter")
+	var continuation: int = (value_a + value_b) - BoardConfig.ENTRY_DICE_VALUE
+	if continuation < 1:
+		return _empty_result("invalid_combined_distance")
+
+	var offset: int = BoardConfig.get_player_offset(pawn.player)
+	var start_index: int = offset  # = get_start_tile_index(pawn.player), progress 0
+
+	# La start tile est ici une case de TRANSIT, pas un atterrissage — TOUTE
+	# barrière (alliée ou ennemie) y bloque le passage, comme n'importe quelle
+	# case de transit (cf. Cas 2 de try_move(), "aucune barrière, alliée ou
+	# ennemie, n'est traversable"). Ne PAS se limiter à "barrière ennemie"
+	# (ce serait la règle d'ATTERRISSAGE, pas de transit).
+	if is_barrier_at(start_index, all_pawns):
+		return _empty_result("path_blocked_by_barrier")
+
+	# Transit (progress 1..continuation-1).
+	for intermediate_progress in range(1, continuation):
+		var inter_ring_index: int = (offset + intermediate_progress) % BoardConfig.RING_SIZE
+		if is_barrier_at(inter_ring_index, all_pawns):
+			return _empty_result("path_blocked_by_barrier")
+
+	# Atterrissage final (identique à la logique d'atterrissage normale de Cas 2).
+	var landing_index: int = (offset + continuation) % BoardConfig.RING_SIZE
+	var barrier_owner: int = get_barrier_owner_at(landing_index, all_pawns)
+	if barrier_owner != -1 and barrier_owner != pawn.player:
+		return _empty_result("landing_blocked_enemy_barrier")
+
+	var result: Dictionary = _empty_result("")
+	result.legal = true
+	result.new_progress = continuation
+	result.new_state = PawnState.RING
+
+	if barrier_owner == pawn.player:
+		result.forms_barrier = true
+		return result
+
+	var occupants: Array = get_pawns_on_ring_index(landing_index, all_pawns)
+	var enemy_occupants: Array = occupants.filter(func(p): return p.player != pawn.player)
+	var ally_occupants: Array = occupants.filter(func(p): return p.player == pawn.player)
+	if enemy_occupants.size() == 1:
+		result.capture = true
+		result.captured_pawn = enemy_occupants[0]
+	elif enemy_occupants.size() >= 2:
+		return _empty_result("landing_blocked_enemy_barrier")
+	if ally_occupants.size() + 1 >= BoardConfig.BARRIER_MIN_PAWNS:
+		result.forms_barrier = true
+	return result
+
+
+## Prévisualise un mouvement combiné (les deux dés d'un coup, pour un même
+## pion) — voir select_pool_preserving_pawns() Tier 3. Pour un pion déjà en
+## jeu (RING/HOME_LANE), c'est simplement try_move() avec la somme des deux
+## dés : le comportement normal d'un grand déplacement (transit = seules les
+## barrières bloquent, capture/formation de barrière uniquement à la case
+## finale) est déjà exactement ce qu'il faut. Seul le cas MAISON (sortie de
+## yard) a besoin d'une logique dédiée (_try_combined_yard_exit), car
+## try_move() exige `dice_value == ENTRY_DICE_VALUE` et atterrit toujours en
+## progress 0.
+static func try_combined_move(pawn: Dictionary, value_a: int, value_b: int, all_pawns: Array) -> Dictionary:
+	if pawn.state == PawnState.MAISON:
+		return _try_combined_yard_exit(pawn, value_a, value_b, all_pawns)
+	return try_move(pawn, value_a + value_b, all_pawns)
+
+
+## Applique un mouvement combiné validé par try_combined_move() : mute `pawn`
+## (et la victime éventuelle). Même contrat que apply_move().
+static func apply_combined_move(pawn: Dictionary, value_a: int, value_b: int, all_pawns: Array) -> Dictionary:
+	if pawn.state == PawnState.MAISON:
+		var result: Dictionary = _try_combined_yard_exit(pawn, value_a, value_b, all_pawns)
+		if not result.legal:
+			return result
+		pawn.state = result.new_state
+		pawn.progress = result.new_progress
+		if result.capture:
+			var victim: Dictionary = result.captured_pawn
+			victim.state = PawnState.CAPTURED
+			victim.progress = -1
+			victim.captor_id = pawn.player
+		return result
+	return apply_move(pawn, value_a + value_b, all_pawns)
