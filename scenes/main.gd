@@ -7,7 +7,7 @@ extends Node3D
 ##   ├─ BoardRoot (board_root.tscn : GridMap, RingDecor, PawnContainer)
 ##   ├─ CameraRig
 ##   ├─ AudioManager
-##   ├─ UIManager (CanvasLayer : HUD, DiceView, DicePoolView, FeedbackLayer)
+##   ├─ UIManager (CanvasLayer : HUD debug (F1), PlayerHUD, FeedbackLayer)
 ##   └─ GameRoot (TurnManager + DiceSystem + BoardManager + PawnController)
 ##
 ## Ce script INSTANCIE et BRANCHE les managers entre eux. TurnManager est
@@ -59,19 +59,16 @@ func _ready() -> void:
 	else:
 		TurnManager.start_new_game()
 
-	# 6. Injecte le TurnManager dans la DiceView (pour le bouton "Lancer").
-	var dice_view: DiceView = ui_manager.get_node_or_null("DiceView")
-	if dice_view:
-		dice_view.turn_manager = TurnManager
+	# 6. Injecte les dépendances du PlayerHUD (chips joueurs, dés, bouton
+	#    lancer) — PlayerHUD fait lui-même le câblage interne vers %DiceView
+	#    et %DicePoolView, main.gd n'a plus besoin de connaître sa structure
+	#    interne.
+	var player_hud: PlayerHUD = ui_manager.get_node_or_null("PlayerHUD")
+	if player_hud:
+		player_hud.setup(TurnManager, board_manager)
 
-	# 6b. Injecte les dépendances de la DicePoolView (choix du dé à jouer).
-	var dice_pool_view: DicePoolView = ui_manager.get_node_or_null("DicePoolView")
-	if dice_pool_view:
-		dice_pool_view.turn_manager = TurnManager
-		dice_pool_view.board_manager = board_manager
-
-	# 7. Injecte les dépendances du HUD (BoardManager n'est pas un autoload,
-	#    contrairement à TurnManager).
+	# 7. Injecte les dépendances du HUD debug (BoardManager n'est pas un
+	#    autoload, contrairement à TurnManager). Masqué par défaut (touche F1).
 	var hud: HUD = ui_manager.get_node_or_null("HUD")
 	if hud:
 		hud.board_manager = board_manager

@@ -34,7 +34,7 @@ func _ready() -> void:
 	_update_transform()
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	# --- Desktop : drag clic droit pour orbiter ---
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
@@ -45,11 +45,18 @@ func _input(event: InputEvent) -> void:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			return
 
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_distance = clampf(_distance - zoom_step, min_distance, max_distance)
-			_update_transform()
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_distance = clampf(_distance + zoom_step, min_distance, max_distance)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			# _unhandled_input() suffit en théorie (les Control consomment déjà
+			# la molette avant qu'elle n'arrive ici), mais un ScrollContainer
+			# sans contenu à faire défiler ne la consomme pas toujours — on
+			# vérifie donc aussi explicitement qu'aucun élément d'UI n'est
+			# survolé, pour ne pas zoomer "à travers" le HUD.
+			if get_viewport().gui_get_hovered_control() != null:
+				return
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				_distance = clampf(_distance - zoom_step, min_distance, max_distance)
+			else:
+				_distance = clampf(_distance + zoom_step, min_distance, max_distance)
 			_update_transform()
 
 	if event is InputEventMouseMotion:

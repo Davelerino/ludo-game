@@ -19,13 +19,7 @@ const PawnState := BoardConfig.PawnState
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 
-const PLAYER_NAMES := ["Bleu", "Vert", "Rouge", "Jaune"]
-const PLAYER_COLORS := [
-	Color(0, 0.5294118, 0.90588236),
-	Color(0, 0.6509804, 0.023529412),
-	Color(0.90588236, 0.015686275, 0),
-	Color(0.90588236, 0.76862746, 0),
-]
+const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
 const STATE_ITEMS := [
 	{"label": "Maison", "value": PawnState.MAISON},
@@ -101,7 +95,7 @@ func _build_top_bar() -> HBoxContainer:
 
 	_active_player_option = OptionButton.new()
 	for player_id in range(BoardConfig.PLAYER_COUNT):
-		_active_player_option.add_item(PLAYER_NAMES[player_id], player_id)
+		_active_player_option.add_item(PALETTE.player_name(player_id), player_id)
 	row.add_child(_active_player_option)
 
 	var reset_button := Button.new()
@@ -117,12 +111,12 @@ func _build_player_header(player_id: int) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 6)
 
 	var swatch := ColorRect.new()
-	swatch.color = PLAYER_COLORS[player_id]
+	swatch.color = PALETTE.main(player_id)
 	swatch.custom_minimum_size = Vector2(14, 14)
 	row.add_child(swatch)
 
 	var label := Label.new()
-	label.text = "Joueur %d — %s" % [player_id, PLAYER_NAMES[player_id]]
+	label.text = "Joueur %d — %s" % [player_id, PALETTE.player_name(player_id)]
 	label.add_theme_font_size_override("font_size", 18)
 	row.add_child(label)
 
@@ -153,7 +147,7 @@ func _build_pawn_row(pawn_id: int, player_id: int, slot: int) -> HBoxContainer:
 	captor_row.add_child(captor_label)
 	var captor_option := OptionButton.new()
 	for other_id in range(BoardConfig.PLAYER_COUNT):
-		captor_option.add_item(PLAYER_NAMES[other_id], other_id)
+		captor_option.add_item(PALETTE.player_name(other_id), other_id)
 	captor_row.add_child(captor_option)
 	row.add_child(captor_row)
 

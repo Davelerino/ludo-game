@@ -1,0 +1,203 @@
+[gd_scene format=3 uid="uid://cnscr1kmu5bq4"]
+
+[ext_resource type="Script" uid="uid://cdsvv4wiqis0s" path="res://ui/hud/player_hud.gd" id="1_script"]
+[ext_resource type="Theme" path="res://resources/theme/game_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://cr3j10botumhv" path="res://resources/theme/scrim_top_gradient.tres" id="3_scrim_top"]
+[ext_resource type="Texture2D" uid="uid://csuahkb3r8jq8" path="res://resources/theme/scrim_bottom_gradient.tres" id="4_scrim_bottom"]
+[ext_resource type="PackedScene" path="res://ui/hud/player_chip.tscn" id="5_chip"]
+[ext_resource type="Script" uid="uid://bk25ekr04qlvt" path="res://ui/dice/dice_view.gd" id="6_dice_view"]
+[ext_resource type="Script" uid="uid://bwl7fa7gpjppl" path="res://ui/dice/dice_pool_view.gd" id="7_dice_pool_view"]
+[ext_resource type="PackedScene" path="res://ui/hud/history_panel.tscn" id="8_history"]
+
+[node name="PlayerHUD" type="Control" unique_id=726999477]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="TopBar" type="Control" parent="." unique_id=1692156007]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 96.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="ScrimTop" type="TextureRect" parent="TopBar" unique_id=111525698]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_scrim_top")
+expand_mode = 1
+
+[node name="TopBarMargin" type="MarginContainer" parent="TopBar" unique_id=1286738845]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="TopBarRow" type="HBoxContainer" parent="TopBar/TopBarMargin" unique_id=1724802805]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BackButton" type="Button" parent="TopBar/TopBarMargin/TopBarRow" unique_id=582563881]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BackButton"
+text = "←"
+
+[node name="HistoryToggleButton" type="Button" parent="TopBar/TopBarMargin/TopBarRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BackButton"
+text = "📜"
+
+[node name="HSpacer" type="Control" parent="TopBar/TopBarMargin/TopBarRow" unique_id=1218988486]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PlayerChipRow" type="HBoxContainer" parent="TopBar/TopBarMargin/TopBarRow" unique_id=1406384294]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PlayerChip0" parent="TopBar/TopBarMargin/TopBarRow/PlayerChipRow" unique_id=392414354 instance=ExtResource("5_chip")]
+unique_name_in_owner = true
+
+[node name="PlayerChip1" parent="TopBar/TopBarMargin/TopBarRow/PlayerChipRow" unique_id=574384638 instance=ExtResource("5_chip")]
+unique_name_in_owner = true
+player_id = 1
+
+[node name="PlayerChip2" parent="TopBar/TopBarMargin/TopBarRow/PlayerChipRow" unique_id=1894801061 instance=ExtResource("5_chip")]
+unique_name_in_owner = true
+player_id = 2
+
+[node name="PlayerChip3" parent="TopBar/TopBarMargin/TopBarRow/PlayerChipRow" unique_id=1755699129 instance=ExtResource("5_chip")]
+unique_name_in_owner = true
+player_id = 3
+
+[node name="BottomBar" type="Control" parent="." unique_id=1070793415]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -110.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="ScrimBottom" type="TextureRect" parent="BottomBar" unique_id=1847723107]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_scrim_bottom")
+expand_mode = 1
+
+[node name="DiceView" type="Control" parent="BottomBar" unique_id=949464253]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("6_dice_view")
+
+[node name="DicePoolView" type="Control" parent="BottomBar" unique_id=1074758884]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("7_dice_pool_view")
+
+[node name="BottomBarMargin" type="MarginContainer" parent="BottomBar" unique_id=761404357]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="BottomBarRow" type="HBoxContainer" parent="BottomBar/BottomBarMargin" unique_id=1407732429]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TurnInfoBox" type="VBoxContainer" parent="BottomBar/BottomBarMargin/BottomBarRow" unique_id=1137030511]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 2
+
+[node name="TurnLabel" type="Label" parent="BottomBar/BottomBarMargin/BottomBarRow/TurnInfoBox" unique_id=938294675]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HudTurnLabel"
+text = "Au tour de..."
+
+[node name="TurnHelperLabel" type="Label" parent="BottomBar/BottomBarMargin/BottomBarRow/TurnInfoBox" unique_id=238046509]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HudTurnHelper"
+
+[node name="HSpacer2" type="Control" parent="BottomBar/BottomBarMargin/BottomBarRow" unique_id=1204194981]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BottomRightCluster" type="HBoxContainer" parent="BottomBar/BottomBarMargin/BottomBarRow" unique_id=1059670554]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+
+[node name="DicePoolRow" type="HBoxContainer" parent="BottomBar/BottomBarMargin/BottomBarRow/BottomRightCluster" unique_id=926036930]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+
+[node name="RollButton" type="Button" parent="BottomBar/BottomBarMargin/BottomBarRow/BottomRightCluster" unique_id=427037757]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"RollButton"
+text = "Lancer"
+
+[node name="HistoryPanel" parent="." instance=ExtResource("8_history")]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = 104.0
+offset_right = -12.0
+offset_bottom = -122.0
+grow_horizontal = 0

@@ -1,13 +1,12 @@
-[gd_scene load_steps=5 format=3 uid="uid://uimanagerludo3d"]
+[gd_scene format=3 uid="uid://b2inml6b5x6o2"]
 
-[ext_resource type="Script" path="res://ui/hud/hud.gd" id="1_hud"]
-[ext_resource type="Script" path="res://ui/dice/dice_view.gd" id="2_dice"]
-[ext_resource type="Script" path="res://ui/feedback/feedback_layer.gd" id="3_fb"]
-[ext_resource type="Script" path="res://ui/dice/dice_pool_view.gd" id="4_pool"]
+[ext_resource type="Script" uid="uid://8gvlmoiapkg1" path="res://ui/hud/hud.gd" id="1_hud"]
+[ext_resource type="Script" uid="uid://pgbvbg5y87l2" path="res://ui/feedback/feedback_layer.gd" id="3_fb"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud/player_hud.tscn" id="4_player_hud"]
 
-[node name="UIManager" type="CanvasLayer"]
+[node name="UIManager" type="CanvasLayer" unique_id=730389000]
 
-[node name="HUD" type="Control" parent="."]
+[node name="HUD" type="Control" parent="." unique_id=2117675679]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,31 +16,9 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_hud")
 
-[node name="DiceView" type="Control" parent="."]
-custom_minimum_size = Vector2(220, 80)
-layout_mode = 1
-anchors_preset = 2
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = -90.0
-offset_right = 230.0
-offset_bottom = -10.0
-grow_vertical = 0
-script = ExtResource("2_dice")
+[node name="PlayerHUD" parent="." instance=ExtResource("4_player_hud")]
 
-[node name="DicePoolView" type="Control" parent="."]
-custom_minimum_size = Vector2(320, 60)
-layout_mode = 1
-anchors_preset = 2
-anchor_bottom = 1.0
-offset_left = 240.0
-offset_top = -90.0
-offset_right = 560.0
-offset_bottom = -10.0
-grow_vertical = 0
-script = ExtResource("4_pool")
-
-[node name="FeedbackLayer" type="Control" parent="."]
+[node name="FeedbackLayer" type="Control" parent="." unique_id=1453761433]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

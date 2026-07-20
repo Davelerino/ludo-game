@@ -10,7 +10,7 @@ extends Control
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const SCENARIO_SCENE := "res://scenes/scenario/scenario_setup.tscn"
-const PLAYER_COLORS: Array[Color] = [Color.CRIMSON, Color.ROYAL_BLUE, Color.FOREST_GREEN, Color.GOLDENROD]
+const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
 var _play_button: Button
 var _scenario_button: Button
@@ -48,9 +48,9 @@ func _build() -> void:
 	swatches.alignment = BoxContainer.ALIGNMENT_CENTER
 	swatches.add_theme_constant_override("separation", 8)
 	vbox.add_child(swatches)
-	for color in PLAYER_COLORS:
+	for player_id in range(BoardConfig.PLAYER_COUNT):
 		var chip := ColorRect.new()
-		chip.color = color
+		chip.color = PALETTE.main(player_id)
 		chip.custom_minimum_size = Vector2(28, 28)
 		swatches.add_child(chip)
 

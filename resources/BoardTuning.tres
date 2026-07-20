@@ -1,19 +1,8 @@
-[gd_resource type="Resource" script_class="BoardTuning" load_steps=2 format=3 uid="uid://btuning001ludo3d"]
+[gd_resource type="Resource" script_class="BoardTuning" format=3 uid="uid://cnste4rb0ov1d"]
 
-[ext_resource type="Script" path="res://resources/board_tuning.gd" id="1_btun"]
+[ext_resource type="Script" uid="uid://djnbinqtg7c2u" path="res://resources/board_tuning.gd" id="1_btun"]
 
 [resource]
 script = ExtResource("1_btun")
-cell_size = 1.0
-ring_radius = 8.0
-yard_elevation = 0.2
-pawn_lift_height = 0.5
-move_duration_mode = 0
-move_total_duration = 0.5
-move_min_hop_duration = 0.12
-move_duration_per_cell = 0.35
-move_transition = 10
-move_ease = 1
-capture_duration = 0.5
-player_colors = Array[Color]([Color(1, 0, 0, 1), Color(0, 0, 1, 1), Color(0, 1, 0, 1), Color(1, 1, 0, 1)])
-player_names = Array[String](["Rouge", "Bleu", "Vert", "Jaune"])
+move_duration_mode = 1
+move_transition = 5

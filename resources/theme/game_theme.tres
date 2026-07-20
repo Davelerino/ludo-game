@@ -1,0 +1,93 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_chip_glass.tres" id="1_chip_glass"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_chip_active.tres" id="2_chip_active"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_back_button.tres" id="3_back_btn"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_die_normal.tres" id="4_die_normal"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_die_hover.tres" id="5_die_hover"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_die_disabled.tres" id="6_die_disabled"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_die_selected.tres" id="7_die_selected"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_die_pip.tres" id="7b_die_pip"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_avatar_circle.tres" id="7c_avatar"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_roll_button_normal.tres" id="8_roll_normal"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_roll_button_disabled.tres" id="9_roll_disabled"]
+[ext_resource type="FontVariation" path="res://resources/theme/font_fredoka_600.tres" id="10_fredoka_600"]
+[ext_resource type="FontVariation" path="res://resources/theme/font_nunito_600.tres" id="11_nunito_600"]
+[ext_resource type="FontVariation" path="res://resources/theme/font_nunito_700.tres" id="12_nunito_700"]
+[ext_resource type="FontVariation" path="res://resources/theme/font_nunito_800.tres" id="13_nunito_800"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_history_panel_bg.tres" id="14_history_bg"]
+[ext_resource type="StyleBoxFlat" path="res://resources/theme/style_history_entry_row.tres" id="15_history_row"]
+
+[resource]
+
+Panel/styles/panel = ExtResource("1_chip_glass")
+
+Button/styles/normal = ExtResource("4_die_normal")
+Button/styles/hover = ExtResource("5_die_hover")
+Button/styles/pressed = ExtResource("5_die_hover")
+Button/styles/disabled = ExtResource("6_die_disabled")
+
+PlayerChipActive/base_type = &"Panel"
+PlayerChipActive/styles/panel = ExtResource("2_chip_active")
+
+BackButton/base_type = &"Button"
+BackButton/styles/normal = ExtResource("3_back_btn")
+BackButton/styles/hover = ExtResource("3_back_btn")
+BackButton/styles/pressed = ExtResource("3_back_btn")
+BackButton/styles/disabled = ExtResource("3_back_btn")
+
+DiePip/base_type = &"Panel"
+DiePip/styles/panel = ExtResource("7b_die_pip")
+
+PlayerAvatar/base_type = &"Panel"
+PlayerAvatar/styles/panel = ExtResource("7c_avatar")
+
+DieButtonSelected/base_type = &"Button"
+DieButtonSelected/styles/normal = ExtResource("7_die_selected")
+DieButtonSelected/styles/hover = ExtResource("7_die_selected")
+DieButtonSelected/styles/pressed = ExtResource("7_die_selected")
+DieButtonSelected/styles/disabled = ExtResource("6_die_disabled")
+
+RollButton/base_type = &"Button"
+RollButton/styles/normal = ExtResource("8_roll_normal")
+RollButton/styles/hover = ExtResource("8_roll_normal")
+RollButton/styles/pressed = ExtResource("8_roll_normal")
+RollButton/styles/disabled = ExtResource("9_roll_disabled")
+RollButton/fonts/font = ExtResource("10_fredoka_600")
+RollButton/font_sizes/font_size = 15
+RollButton/colors/font_color = Color(1, 1, 1, 1)
+RollButton/colors/font_disabled_color = Color(1, 1, 1, 0.8)
+
+HudTurnLabel/base_type = &"Label"
+HudTurnLabel/fonts/font = ExtResource("10_fredoka_600")
+HudTurnLabel/font_sizes/font_size = 22
+
+HudTurnHelper/base_type = &"Label"
+HudTurnHelper/fonts/font = ExtResource("11_nunito_600")
+HudTurnHelper/font_sizes/font_size = 13
+HudTurnHelper/colors/font_color = Color(1, 1, 1, 0.85)
+
+HudChipName/base_type = &"Label"
+HudChipName/fonts/font = ExtResource("12_nunito_700")
+HudChipName/font_sizes/font_size = 13
+HudChipName/colors/font_color = Color(0.169, 0.149, 0.125, 1)
+
+HudChipScore/base_type = &"Label"
+HudChipScore/fonts/font = ExtResource("13_nunito_800")
+HudChipScore/font_sizes/font_size = 12
+HudChipScore/colors/font_color = Color(0.58, 0.549, 0.494, 1)
+
+HistoryPanelBg/base_type = &"Panel"
+HistoryPanelBg/styles/panel = ExtResource("14_history_bg")
+
+HistoryEntryRow/base_type = &"Panel"
+HistoryEntryRow/styles/panel = ExtResource("15_history_row")
+
+HistoryEntryHeader/base_type = &"Label"
+HistoryEntryHeader/fonts/font = ExtResource("12_nunito_700")
+HistoryEntryHeader/font_sizes/font_size = 12
+
+HistoryEntryDetail/base_type = &"Label"
+HistoryEntryDetail/fonts/font = ExtResource("11_nunito_600")
+HistoryEntryDetail/font_sizes/font_size = 11
+HistoryEntryDetail/colors/font_color = Color(1, 1, 1, 0.75)

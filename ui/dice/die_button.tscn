@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/dice/die_button.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://ui/dice/die_face.tscn" id="2_face"]
+
+[node name="DieButton" type="Button"]
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+script = ExtResource("1_script")
+
+[node name="DieFace" parent="." instance=ExtResource("2_face")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -19.0
+offset_top = -19.0
+offset_right = 19.0
+offset_bottom = 19.0
+grow_horizontal = 2
+grow_vertical = 2

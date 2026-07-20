@@ -9,21 +9,18 @@ extends Control
 ## dessous. Écoute GameEvents (§11.2) pour rester découplée des managers —
 ## sauf BoardManager, qui n'est pas un autoload (contrairement à TurnManager)
 ## et doit être injecté par main.gd.
+##
+## Masqué par défaut : le HUD joueur stylisé (ui/hud/player_hud.gd) est
+## l'affichage par défaut. Ce panneau reste disponible pour le dev via la
+## touche F1 (action "toggle_debug_hud").
 ## ============================================================================
 
 const PawnState := BoardConfig.PawnState
 
 ## Player0=Bleu, Player1=Vert, Player2=Rouge, Player3=Jaune — voir
-## pawn_controller.gd:pawn_scenes (source de vérité des couleurs réelles).
-const PLAYER_NAMES := ["Bleu", "Vert", "Rouge", "Jaune"]
-## Reprises des shader_parameter/albedo_color de resources/{Couleur}_mat.tres,
-## pour que les pastilles du panneau correspondent aux pions sur le plateau.
-const PLAYER_COLORS := [
-	Color(0, 0.5294118, 0.90588236),
-	Color(0, 0.6509804, 0.023529412),
-	Color(0.90588236, 0.015686275, 0),
-	Color(0.90588236, 0.76862746, 0),
-]
+## pawn_controller.gd:pawn_scenes (source de vérité des couleurs réelles),
+## reprises dans PlayerPalette (resources/PlayerPalette.tres).
+const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
 ## Injecté par main.gd (BoardManager est un noeud de scène, pas un autoload
 ## — contrairement à TurnManager, lu directement pour dice_pool ci-dessous).
@@ -43,6 +40,7 @@ var _offered_dice_value: int = -1
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	visible = false
 	_build()
 	GameEvents.dice_rolled.connect(_on_dice_rolled)
 	GameEvents.dice_pool_changed.connect(_on_dice_pool_changed)
@@ -56,6 +54,11 @@ func _ready() -> void:
 	_refresh_player_label(0)
 	_refresh_offered_label()
 	refresh()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_debug_hud"):
+		visible = not visible
 
 
 func _build() -> void:
@@ -125,7 +128,7 @@ func _on_dice_rolled(a: int, b: int, is_double: bool) -> void:
 
 
 func _on_turn_ended(_prev: int, next_p: int) -> void:
-	_append_log("--- Tour du joueur %d (%s) ---" % [next_p, PLAYER_NAMES[next_p]])
+	_append_log("--- Tour du joueur %d (%s) ---" % [next_p, PALETTE.player_name(next_p)])
 	_refresh_player_label(next_p)
 	_offered_pawn_ids = []
 	_refresh_offered_label()
@@ -167,12 +170,12 @@ func _on_pawn_captured(victim: Dictionary, attacker: Dictionary) -> void:
 
 
 func _on_victory(winner: int) -> void:
-	_append_log("[b][color=gold]🏆 Victoire du joueur %d (%s) ![/color][/b]" % [winner, PLAYER_NAMES[winner]])
+	_append_log("[b][color=gold]🏆 Victoire du joueur %d (%s) ![/color][/b]" % [winner, PALETTE.player_name(winner)])
 
 
 func _refresh_player_label(player_id: int) -> void:
-	_player_label.text = "Joueur actif : %d (%s)" % [player_id, PLAYER_NAMES[player_id]]
-	_player_swatch.color = PLAYER_COLORS[player_id]
+	_player_label.text = "Joueur actif : %d (%s)" % [player_id, PALETTE.player_name(player_id)]
+	_player_swatch.color = PALETTE.main(player_id)
 
 
 func _refresh_offered_label() -> void:
@@ -201,9 +204,9 @@ func _refresh_pawns_table() -> void:
 	var bb := "[table=4]"
 	bb += "[cell][b]Id[/b][/cell][cell][b]Joueur[/b][/cell][cell][b]État[/b][/cell][cell][b]Prog.[/b][/cell]"
 	for pawn in board_manager.all_pawns:
-		var color_hex: String = PLAYER_COLORS[pawn.player].to_html(false)
+		var color_hex: String = PALETTE.main(pawn.player).to_html(false)
 		bb += "[cell]%d[/cell][cell][color=#%s]%s[/color][/cell][cell]%s[/cell][cell]%d[/cell]" % [
-			pawn.id, color_hex, PLAYER_NAMES[pawn.player],
+			pawn.id, color_hex, PALETTE.player_name(pawn.player),
 			PawnState.find_key(pawn.state), pawn.progress
 		]
 	bb += "[/table]"

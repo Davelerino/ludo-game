@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/dice/die_face.gd" id="1_script"]
+
+[node name="DieFace" type="GridContainer"]
+custom_minimum_size = Vector2(38, 38)
+layout_mode = 2
+mouse_filter = 2
+columns = 3
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+script = ExtResource("1_script")
+
+[node name="Pip0" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip1" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip2" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip3" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip4" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip5" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip6" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip7" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
+
+[node name="Pip8" type="Panel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DiePip"
