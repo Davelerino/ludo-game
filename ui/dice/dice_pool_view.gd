@@ -46,10 +46,14 @@ func _on_pool_changed(_player_id: int, pool: Array) -> void:
 	for entry in pool:
 		_seen_entries[entry.id] = entry.value
 	if _selected_pool_id != -1 and _selected_pool_id not in _current_pool_ids:
-		# Le dé actif vient d'être joué et retiré du pool (TurnManager émet
-		# dice_pool_changed dès le retrait, avant même la transition d'état
-		# suivante) — on l'oublie pour laisser _maybe_auto_arm() armer le
-		# prochain dé jouable dans la foulée.
+		# Le dé actif vient d'être joué et retiré du pool — on l'oublie.
+		# NOTE : TurnManager passe désormais l'état à MOVING AVANT d'émettre
+		# dice_pool_changed pour ce cas (voir turn_manager.gd:_play_pawn /
+		# _play_combined_move), donc _maybe_auto_arm() ci-dessous ne pourra
+		# PAS armer/rejouer un autre dé tant que cette animation n'est pas
+		# terminée — seul le tout premier dé après un lancer (état encore
+		# CHECKING_MOVES à ce moment-là, cf. turn_manager.gd:188) traverse
+		# encore ce chemin en synchrone.
 		_selected_pool_id = -1
 	_maybe_auto_arm()
 	_rebuild_row()
@@ -105,19 +109,40 @@ func _is_dead(value: int) -> bool:
 
 ## Il y a toujours un dé actif dès qu'un coup est possible (UX : cliquer un
 ## pion directement sans devoir d'abord cliquer un dé) — appelée avant chaque
-## reconstruction de la rangée, depuis _on_pool_changed() (dé suivant après
-## un coup joué, pool déjà réduit mais état inchangé) ET _on_state_changed()
-## (tout premier dé après un lancer, puisque dice_pool_changed est émis AVANT
-## le passage à WAITING_FOR_SELECTION côté TurnManager).
+## reconstruction de la rangée, depuis _on_pool_changed() (utile pour le tout
+## premier dé après un lancer : dice_pool_changed est alors émis pendant que
+## l'état est encore CHECKING_MOVES, voir turn_manager.gd:188, donc le garde-
+## fou state != WAITING_FOR_SELECTION bloque l'armement à ce stade) ET
+## _on_state_changed() (qui arme réellement ce premier dé, ET chaque dé
+## suivant une fois l'animation du précédent terminée et l'état repassé à
+## WAITING_FOR_SELECTION par _after_move_resolved()). Un 6 encore jouable est
+## toujours choisi en priorité sur les autres dés du pool (voir corps de la
+## fonction) : sortir un pion de la Maison change souvent les pions légaux
+## disponibles pour les autres dés, le joueur doit garder la main sur cet
+## ordre plutôt que de se faire devancer par l'avance auto d'un autre dé.
 func _maybe_auto_arm() -> void:
 	if not turn_manager or turn_manager.state != TurnManager.TurnState.WAITING_FOR_SELECTION:
 		return
 	if _selected_pool_id != -1:
 		return
+	# Priorise un 6 encore jouable : sortir un pion de la Maison (§4.2) change
+	# souvent les pions légaux des autres dés, donc le joueur doit pouvoir le
+	# jouer en premier plutôt que de se faire devancer par l'avance auto d'un
+	# autre dé. Fallback sur le premier dé jouable du pool si aucun 6 dispo.
+	var six_id: int = -1
+	var fallback_id: int = -1
 	for pool_id in _current_pool_ids:
-		if not _is_dead(_seen_entries[pool_id]):
-			_arm_die(pool_id)
-			return
+		var value: int = _seen_entries[pool_id]
+		if _is_dead(value):
+			continue
+		if value == BoardConfig.ENTRY_DICE_VALUE:
+			six_id = pool_id
+			break
+		if fallback_id == -1:
+			fallback_id = pool_id
+	var chosen_id: int = six_id if six_id != -1 else fallback_id
+	if chosen_id != -1:
+		_arm_die(chosen_id)
 
 
 func _on_die_pressed(pool_id: int) -> void:

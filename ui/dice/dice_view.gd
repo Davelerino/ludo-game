@@ -29,7 +29,8 @@ func _on_roll_pressed() -> void:
 
 
 ## Raccourci clavier (action "roll_dice", touche D) : même effet que le clic
-## sur le bouton, soumis à la même garde (désactivé hors WAITING_FOR_ROLL).
+## sur le bouton, soumis à la même garde (désactivé hors WAITING_FOR_ROLL /
+## WAITING_FOR_REROLL).
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("roll_dice") and not _roll_button.disabled:
 		_on_roll_pressed()
@@ -42,6 +43,11 @@ func _on_state_changed(_old: int, new_state: int) -> void:
 func _apply_state(state: int) -> void:
 	if state == TurnManager.TurnState.WAITING_FOR_ROLL:
 		_roll_button.text = "Lancer"
+		_roll_button.disabled = false
+	elif state == TurnManager.TurnState.WAITING_FOR_REROLL:
+		# Double six : le joueur a gagné une relance mais doit la déclencher
+		# lui-même (plus de relance automatique enchaînée, voir turn_manager.gd).
+		_roll_button.text = "Relancer !"
 		_roll_button.disabled = false
 	else:
 		_roll_button.text = "…"

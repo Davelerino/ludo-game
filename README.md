@@ -100,11 +100,14 @@ Attendu : `14 PASS / 0 FAIL`. Couvre L1-L13 + B1-B6 + H1-H5 (voir
 
 ## 6. Machine à états de tour (§9) — résumé
 
-`TurnManager.TurnState` : `WAITING_FOR_ROLL → ROLLING → CHECKING_MOVES →
-WAITING_FOR_SELECTION → MOVING → TURN_ENDING → (boucle ou GAME_OVER)`.
+`TurnManager.TurnState` : `WAITING_FOR_ROLL → ROLLING → (WAITING_FOR_REROLL →
+ROLLING)* → CHECKING_MOVES → WAITING_FOR_SELECTION → MOVING → TURN_ENDING →
+(boucle ou GAME_OVER)`.
 
 Points clés implémentés :
-- **Double six → extra tour** (§5.1) — même joueur rejoue.
+- **Double six → extra tour** (§5.1) — même joueur rejoue, mais doit
+  déclencher lui-même la relance (bouton "Relancer !", état
+  WAITING_FOR_REROLL) plutôt qu'une relance automatique enchaînée.
 - **Compteur `consecutive_rolls` ≤ 3** (§5.3) — anti-boucle infinie : au 3e
   lancer consécutif, l'extra tour est refusé.
 - **Verrouillage post-capture** (§8.3 / L10) — `locked_pawn_ids` est passé à

@@ -133,10 +133,11 @@ func _on_pawn_finished(pawn: Dictionary) -> void:
 	)
 
 
-## Mapping exact vérifié contre turn_manager.gd : une fois le pool épuisé,
-## _end_turn() fait TOUJOURS avancer active_player — il n'existe pas d'état
-## "même joueur, relance" — donc WAITING_FOR_ROLL correspond sans ambiguïté
-## à "Relance pour continuer" (nouveau joueur actif, premier lancer à venir).
+## Mapping vérifié contre turn_manager.gd : une fois le pool épuisé, _end_turn()
+## fait TOUJOURS avancer active_player, donc WAITING_FOR_ROLL correspond sans
+## ambiguïté à "nouveau joueur actif, premier lancer à venir". Le cas "même
+## joueur, relance" existe désormais (double six) : c'est WAITING_FOR_REROLL,
+## distinct, pour ne pas mélanger les deux messages.
 func _refresh_helper_text() -> void:
 	if not turn_manager:
 		return
@@ -145,6 +146,8 @@ func _refresh_helper_text() -> void:
 			_turn_helper_label.text = "Lancer en cours…"
 		TurnManager.TurnState.WAITING_FOR_ROLL:
 			_turn_helper_label.text = "Relance pour continuer"
+		TurnManager.TurnState.WAITING_FOR_REROLL:
+			_turn_helper_label.text = "Double six ! Relance encore"
 		TurnManager.TurnState.WAITING_FOR_SELECTION:
 			if _selected_die_value != -1:
 				_turn_helper_label.text = "Clique un pion pour jouer le %d" % _selected_die_value

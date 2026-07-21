@@ -1,5 +1,9 @@
 [gd_resource type="MeshLibrary" format=4 uid="uid://b0dwy3bhewmbm"]
 
+[ext_resource type="Material" uid="uid://djbinm4wrj6vn" path="res://resources/Standard_Red_mat.tres" id="1_3bfd5"]
+[ext_resource type="Material" uid="uid://drvwosw3spwb0" path="res://resources/Standard_Yellow_mat.tres" id="2_t4p0t"]
+[ext_resource type="Material" uid="uid://c2vjbumyl40gb" path="res://resources/Standard_Blue_mat.tres" id="3_b3v8q"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ksr0j"]
 resource_name = "Neutral"
 cull_mode = 2
@@ -142,24 +146,6 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_av01y")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8b75e"]
-resource_name = "Team_01"
-cull_mode = 2
-albedo_color = Color(0.9064733, 0.7684866, 0, 1)
-roughness = 0.5
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g7t4r"]
-resource_name = "Team_02"
-cull_mode = 2
-albedo_color = Color(0, 0.52853405, 0.90650135, 1)
-roughness = 0.5
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_445rb"]
-resource_name = "Team_03"
-cull_mode = 2
-albedo_color = Color(0.90653986, 0.01424498, 0, 1)
-roughness = 0.5
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uhlt0"]
 resource_name = "Team_04"
 cull_mode = 2
@@ -234,7 +220,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 3,
 "index_data": PackedByteArray("AAABAAIA"),
-"material": SubResource("StandardMaterial3D_8b75e"),
+"material": ExtResource("1_3bfd5"),
 "name": "Team_01",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
@@ -246,7 +232,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 3,
 "index_data": PackedByteArray("AAABAAIA"),
-"material": SubResource("StandardMaterial3D_g7t4r"),
+"material": ExtResource("2_t4p0t"),
 "name": "Team_02",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
@@ -258,7 +244,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 3,
 "index_data": PackedByteArray("AAABAAIA"),
-"material": SubResource("StandardMaterial3D_445rb"),
+"material": ExtResource("3_b3v8q"),
 "name": "Team_03",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),

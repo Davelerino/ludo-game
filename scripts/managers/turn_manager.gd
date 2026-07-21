@@ -10,11 +10,13 @@ extends Node
 ##     lancers de dés (§5.1), constitution du pool de dés, sélection/applique
 ##     du mouvement (choisi librement par le joueur, dé PUIS pion), fin de
 ##     tour, et transition vers le joueur suivant.
-##   - Appliquer les règles de lancer : un double six déclenche une relance
-##     IMMÉDIATE (avant tout coup joué), dont les valeurs rejoignent le même
-##     pool ; un 3e double six consécutif annule le tour entier (§5.1/§5.3
-##     révisés — voir _run_roll_chain()). Verrouillage post-capture d'un pion
-##     pour le reste du tour (§8.3 / L10).
+##   - Appliquer les règles de lancer : un double six déclenche un DROIT à une
+##     relance, dont les valeurs rejoignent le même pool — mais c'est le
+##     joueur qui la déclenche lui-même (bouton "Relancer", état
+##     WAITING_FOR_REROLL) plutôt qu'une relance automatique, avant tout coup
+##     joué ; un 3e double six consécutif annule le tour entier (§5.1/§5.3
+##     révisés — voir request_roll()/_roll_once()). Verrouillage post-capture
+##     d'un pion pour le reste du tour (§8.3 / L10).
 ##   - Déléguer TOUTE la validation au RuleEngine : le TurnManager ne décide
 ##     jamais si un coup est légal, il orchestre.
 ##
@@ -41,7 +43,8 @@ const PawnState := BoardConfig.PawnState
 # ----------------------------------------------------------------------------
 enum TurnState {
 	WAITING_FOR_ROLL,       # 1. début de tour : on attend que le joueur lance les dés
-	ROLLING,                # 2. enchaînement de lancers en cours (double six -> relance immédiate)
+	ROLLING,                # 2. lancer physique en cours
+	WAITING_FOR_REROLL,     # 2b. double six obtenu : on attend que le joueur relance lui-même
 	CHECKING_MOVES,         # 3. pool constitué : on vérifie les coups légaux
 	WAITING_FOR_SELECTION,  # 4. au moins un coup légal : le joueur choisit un dé PUIS un pion
 	MOVING,                 # 5. coup appliqué : animation de déplacement en cours
@@ -64,14 +67,16 @@ var pawn_controller: PawnController
 var locked_pawn_ids: Array = []
 
 ## Pool de dés en attente ce tour : Array de {"id": int, "value": int}.
-## Entièrement construit par _run_roll_chain() AVANT tout choix du joueur
-## (§5.1 : fini d'attendre la fin du tour pour la relance du double six, tout
-## est dans le pool dès le départ) ; ne rétrécit QUE lorsqu'un dé est
-## effectivement joué (voir _remove_from_pool()) — un dé sans coup légal à
-## l'instant T reste dans le pool, car jouer un AUTRE dé d'abord peut le
-## rendre jouable ensuite (ex. sortir un pion de la Maison avec un 6 rend un 4
-## jouable). L'UI grise juste les dés temporairement injouables
-## (dice_pool_view.gd:_is_dead()), elle ne les retire pas.
+## Construit lancer physique par lancer physique par _roll_once() — un double
+## six ajoute ses 2 valeurs au pool et attend un clic joueur (état
+## WAITING_FOR_REROLL) avant le lancer suivant, AVANT tout choix de coup
+## (§5.1 : le pool complet est toujours constitué avant que le joueur ne
+## commence à jouer un dé) ; ne rétrécit QUE lorsqu'un dé est effectivement
+## joué (voir _remove_from_pool()) — un dé sans coup légal à l'instant T reste
+## dans le pool, car jouer un AUTRE dé d'abord peut le rendre jouable ensuite
+## (ex. sortir un pion de la Maison avec un 6 rend un 4 jouable). L'UI grise
+## juste les dés temporairement injouables (dice_pool_view.gd:_is_dead()),
+## elle ne les retire pas.
 var dice_pool: Array = []
 
 ## Id (dans dice_pool) du dé actuellement armé par select_die(), en attente
@@ -81,6 +86,18 @@ var dice_pool: Array = []
 var _selected_die_id: int = -1
 
 var _last_result: Dictionary = {}
+
+## Compteur de lancers PHYSIQUES consécutifs pour LE TOUR COURANT (§5.3) —
+## incrémenté à chaque _roll_once(), remis à 0 par _start_turn_loop(). Sert de
+## seuil de bust : un 3e double six consécutif annule le tour (voir
+## BoardConfig.MAX_CONSECUTIVE_ROLLS).
+var _roll_chain_count: int = 0
+
+## Prochain id à distribuer dans dice_pool — continu sur toute la chaîne de
+## lancers d'un même tour (potentiellement plusieurs appels séparés de
+## _roll_once() si le joueur enchaîne des doubles six), remis à 0 par
+## _start_turn_loop().
+var _next_dice_id: int = 0
 
 
 ## Rattachement explicite des dépendances (appelé par main.gd / GameRoot).
@@ -117,52 +134,62 @@ func _start_turn_loop(starting_player: int) -> void:
 	dice_pool.clear()
 	_selected_die_id = -1
 	_last_result = {}
+	_roll_chain_count = 0
+	_next_dice_id = 0
 	_change_state(TurnState.WAITING_FOR_ROLL)
 
 
 # ----------------------------------------------------------------------------
-# État 1 -> 2 : le joueur demande à lancer les dés
+# État 1/2b -> 2 : le joueur demande à lancer (ou relancer après un double six)
 # ----------------------------------------------------------------------------
+## Appelé par le bouton "Lancer"/"Relancer" (voir dice_view.gd) : valide pour
+## le tout premier lancer du tour (WAITING_FOR_ROLL) ET pour chaque relance
+## après un double six (WAITING_FOR_REROLL) — c'est désormais TOUJOURS le
+## joueur qui déclenche explicitement chaque lancer physique, y compris ceux
+## gagnés par un double six (plus de relance automatique enchaînée).
 func request_roll() -> void:
-	if state != TurnState.WAITING_FOR_ROLL:
+	if state != TurnState.WAITING_FOR_ROLL and state != TurnState.WAITING_FOR_REROLL:
 		return
 	_change_state(TurnState.ROLLING)
-	_run_roll_chain()
+	_roll_once()
 
 
 # ----------------------------------------------------------------------------
-# État 2 -> 3 : enchaînement de lancers (§5.1 fix + §5.3 révisé)
+# État 2 -> 2b/3 : un lancer physique (§5.1 fix + §5.3 révisé)
 # ----------------------------------------------------------------------------
-## Exécute 1 à 3 lancers PHYSIQUES d'affilée : un double six déclenche une
-## relance IMMÉDIATE dont les valeurs rejoignent directement dice_pool, AVANT
-## que le joueur ne choisisse le moindre coup. On a droit à 2 doubles six
-## d'affilée (2 relances) ; un 3e double six consécutif annule le tour entier
-## (bust total : pool vidé, aucun pion ne bouge). Réutilise
-## BoardConfig.MAX_CONSECUTIVE_ROLLS (3) comme seuil de bust plutôt que
-## d'introduire une nouvelle constante.
-func _run_roll_chain() -> void:
-	dice_pool.clear()
-	var next_id: int = 0
-	var chain_count: int = 0
-	var busted: bool = false
-	while true:
-		chain_count += 1
-		var pair: Array[int] = dice_system.roll_pair()
-		var is_double_six: bool = pair[0] == 6 and pair[1] == 6
-		if is_double_six and chain_count >= BoardConfig.MAX_CONSECUTIVE_ROLLS:
-			busted = true
-			break
-		dice_pool.append({"id": next_id, "value": pair[0]})
-		next_id += 1
-		dice_pool.append({"id": next_id, "value": pair[1]})
-		next_id += 1
-		if not is_double_six:
-			break
-
-	if busted:
+## Exécute UN lancer physique et l'ajoute à dice_pool (qui peut déjà contenir
+## des dés de lancers précédents du même tour, si le joueur a enchaîné des
+## doubles six). Un double six donne droit à une relance, mais ne la
+## déclenche plus automatiquement : on repasse la main au joueur
+## (WAITING_FOR_REROLL) qui doit recliquer "Relancer" — plus gratifiant que
+## l'ancien enchaînement instantané, et cohérent avec le principe "AVANT tout
+## coup joué" (le pool n'est proposé au choix du joueur qu'une fois la chaîne
+## de lancers terminée). On a droit à 2 doubles six d'affilée (2 relances) ;
+## un 3e double six consécutif annule le tour entier (bust total : pool vidé,
+## aucun pion ne bouge). Réutilise BoardConfig.MAX_CONSECUTIVE_ROLLS (3)
+## comme seuil de bust plutôt que d'introduire une nouvelle constante.
+func _roll_once() -> void:
+	_roll_chain_count += 1
+	var pair: Array[int] = dice_system.roll_pair()
+	var is_double_six: bool = pair[0] == 6 and pair[1] == 6
+	if is_double_six and _roll_chain_count >= BoardConfig.MAX_CONSECUTIVE_ROLLS:
 		dice_pool.clear()
 		GameEvents.turn_busted.emit(active_player)
 		_end_turn("triple_double_six_bust")
+		return
+
+	dice_pool.append({"id": _next_dice_id, "value": pair[0]})
+	_next_dice_id += 1
+	dice_pool.append({"id": _next_dice_id, "value": pair[1]})
+	_next_dice_id += 1
+
+	if is_double_six:
+		# Montre les dés déjà engrangés pendant que le joueur décide de
+		# relancer — _resolve_checked_moves() (cas non-double, ci-dessous)
+		# émettra son propre dice_pool_changed une fois le pool final connu,
+		# inutile de le dupliquer ici.
+		GameEvents.dice_pool_changed.emit(active_player, dice_pool)
+		_change_state(TurnState.WAITING_FOR_REROLL)
 		return
 
 	_change_state(TurnState.CHECKING_MOVES)
@@ -291,6 +318,14 @@ func _play_pawn(pawn: Dictionary, entry: Dictionary) -> void:
 
 	_last_result = result
 	_remove_from_pool(entry.id)
+	# _change_state(MOVING) AVANT ce emit : DicePoolView._on_pool_changed()
+	# écoute dice_pool_changed de façon SYNCHRONE et peut ré-armer/auto-jouer
+	# le dé suivant (_maybe_auto_arm -> select_die) dans le même appel — le
+	# garde-fou de select_die() (state != WAITING_FOR_SELECTION) doit donc
+	# déjà voir MOVING ici, sinon deux _play_pawn()/_play_combined_move()
+	# s'enchaînent avant que le Tween du premier n'existe (glitch visuel :
+	# saut direct au point final puis retour en arrière case par case).
+	_change_state(TurnState.MOVING)
 	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 
 	# Publie les signaux de haut niveau (§11.2) AVANT l'animation.
@@ -299,7 +334,6 @@ func _play_pawn(pawn: Dictionary, entry: Dictionary) -> void:
 		locked_pawn_ids.append(pawn.id)  # §8.3 / L10 : verrouillage post-capture
 		GameEvents.pawn_captured.emit(result.captured_pawn, pawn)
 
-	_change_state(TurnState.MOVING)
 	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, entry.value, capture_info, true)
 	# -> l'animation (mouvement + éventuelle étape de capture) appellera
 	# _on_move_animation_done via pawn_moved, une fois TOUTE l'animation finie.
@@ -338,6 +372,10 @@ func _play_combined_move(pawn: Dictionary, entry_a: Dictionary, entry_b: Diction
 	_last_result = result
 	_remove_from_pool(entry_a.id)
 	_remove_from_pool(entry_b.id)
+	# Voir _play_pawn() : _change_state(MOVING) doit précéder ce emit pour
+	# empêcher DicePoolView de ré-armer/auto-jouer un autre dé en cascade
+	# avant que le Tween de CE mouvement n'existe.
+	_change_state(TurnState.MOVING)
 	GameEvents.dice_pool_changed.emit(active_player, dice_pool)
 
 	GameEvents.move_validated.emit(pawn, value_a + value_b, result)
@@ -345,7 +383,6 @@ func _play_combined_move(pawn: Dictionary, entry_a: Dictionary, entry_b: Diction
 		locked_pawn_ids.append(pawn.id)  # sans effet ce tour (dés consommés), mais cohérent
 		GameEvents.pawn_captured.emit(result.captured_pawn, pawn)
 
-	_change_state(TurnState.MOVING)
 	pawn_controller.move_pawn_visual(pawn, old_state, old_progress, value_a + value_b, capture_info, true)
 	GameEvents.pawn_moved.connect(_on_move_animation_done, CONNECT_ONE_SHOT)
 

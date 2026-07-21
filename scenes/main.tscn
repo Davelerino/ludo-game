@@ -52,7 +52,6 @@ config = ExtResource("9_cfg")
 
 [node name="PawnController" type="Node" parent="GameRoot" unique_id=1111400518]
 script = ExtResource("7_pc")
-board_manager = NodePath("../BoardManager")
 
 [node name="DiceSystem" type="Node" parent="GameRoot" unique_id=1798746037]
 script = ExtResource("8_dice")
