@@ -70,6 +70,8 @@ func _on_settings_toggle_pressed() -> void:
 func setup(p_turn_manager: TurnManager, p_board_manager: BoardManager) -> void:
 	turn_manager = p_turn_manager
 	board_manager = p_board_manager
+	for i in range(_chips.size()):
+		_chips[i].visible = i in board_manager.active_players
 	_dice_view.turn_manager = p_turn_manager
 	_dice_pool_view.turn_manager = p_turn_manager
 	_dice_pool_view.board_manager = p_board_manager

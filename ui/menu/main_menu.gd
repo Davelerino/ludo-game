@@ -3,78 +3,45 @@ extends Control
 ## ============================================================================
 ## MainMenu — Écran-titre, point d'entrée du jeu (avant scenes/main.tscn).
 ##
-## Deux actions : lancer une partie (change de scène vers le plateau) ou
-## quitter. Construit entièrement en code, comme le reste de ui/ (HUD,
-## DiceView, FeedbackLayer), pour rester cohérent avec le style existant.
+## Construit comme une scène concrète (scenes/ui/main_menu.tscn), sur le
+## modèle de player_hud.tscn : nœuds réels + thème appliqué au nœud racine,
+## ce script se contente de câbler les signaux — voir GameSetup pour le
+## nombre de joueurs choisi, transporté vers main.tscn.
+##
+## Trois actions : choisir le nombre de joueurs, lancer une partie (change de
+## scène vers le plateau), configurer un scénario de test, ou quitter.
 ## ============================================================================
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const SCENARIO_SCENE := "res://scenes/scenario/scenario_setup.tscn"
-const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
-var _play_button: Button
-var _scenario_button: Button
-var _quit_button: Button
+@onready var _count2_button: Button = %Count2Button
+@onready var _count3_button: Button = %Count3Button
+@onready var _count4_button: Button = %Count4Button
+@onready var _swatches: Array[PlayerChip] = [%Swatch0, %Swatch1, %Swatch2, %Swatch3]
+@onready var _play_button: Button = %PlayButton
+@onready var _scenario_button: Button = %ScenarioButton
+@onready var _quit_button: Button = %QuitButton
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_build()
-
-
-func _build() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.07, 0.09)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
-
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-
-	var vbox := VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
-
-	var title := Label.new()
-	title.text = "LUDO 3D"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 64)
-	vbox.add_child(title)
-
-	var swatches := HBoxContainer.new()
-	swatches.alignment = BoxContainer.ALIGNMENT_CENTER
-	swatches.add_theme_constant_override("separation", 8)
-	vbox.add_child(swatches)
-	for player_id in range(BoardConfig.PLAYER_COUNT):
-		var chip := ColorRect.new()
-		chip.color = PALETTE.main(player_id)
-		chip.custom_minimum_size = Vector2(28, 28)
-		swatches.add_child(chip)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 24)
-	vbox.add_child(spacer)
-
-	_play_button = Button.new()
-	_play_button.text = "Jouer"
-	_play_button.custom_minimum_size = Vector2(220, 48)
+	_count2_button.pressed.connect(_on_count_selected.bind(2))
+	_count3_button.pressed.connect(_on_count_selected.bind(3))
+	_count4_button.pressed.connect(_on_count_selected.bind(4))
 	_play_button.pressed.connect(_on_play_pressed)
-	vbox.add_child(_play_button)
-
-	_scenario_button = Button.new()
-	_scenario_button.text = "Configurer un scénario"
-	_scenario_button.custom_minimum_size = Vector2(220, 48)
 	_scenario_button.pressed.connect(_on_scenario_pressed)
-	vbox.add_child(_scenario_button)
-
-	_quit_button = Button.new()
-	_quit_button.text = "Quitter"
-	_quit_button.custom_minimum_size = Vector2(220, 48)
 	_quit_button.pressed.connect(_on_quit_pressed)
-	vbox.add_child(_quit_button)
+	_on_count_selected(GameSetup.player_count)
+
+
+func _on_count_selected(count: int) -> void:
+	GameSetup.player_count = count
+	_refresh_swatches(GameSetup.get_active_players())
+
+
+func _refresh_swatches(active_players: Array[int]) -> void:
+	for i in range(_swatches.size()):
+		_swatches[i].visible = i in active_players
 
 
 func _on_play_pressed() -> void:

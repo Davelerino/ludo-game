@@ -222,7 +222,7 @@ func test_victory_detection() -> void:
 		p.state = PawnState.FINI
 		all_pawns.append(p)
 	_assert(RuleEngine.has_player_won(0, all_pawns), "le joueur 0 a 4 pions FINI")
-	_assert(RuleEngine.check_victory(all_pawns) == 0, "check_victory retourne le joueur 0")
+	_assert(RuleEngine.check_victory(all_pawns, [0, 1, 2, 3]) == 0, "check_victory retourne le joueur 0")
 
 
 # ----------------------------------------------------------------------------

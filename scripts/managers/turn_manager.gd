@@ -120,7 +120,7 @@ func setup(p_dice: DiceSystem, p_board: BoardManager, p_pawns: PawnController) -
 # ----------------------------------------------------------------------------
 func start_new_game() -> void:
 	board_manager.reset_all_to_yard()
-	_start_turn_loop(0)
+	_start_turn_loop(board_manager.active_players[0])
 
 
 ## Démarre la boucle de tours à partir d'un plateau DÉJÀ configuré (mode
@@ -431,7 +431,7 @@ func _on_move_animation_done(pawn: Dictionary, _dice_value: int) -> void:
 # ----------------------------------------------------------------------------
 func _after_move_resolved() -> void:
 	# 1. Victoire ? (§2.3, L12) — vérifié même avec des dés restants dans le pool.
-	var winner: int = RuleEngine.check_victory(board_manager.all_pawns)
+	var winner: int = RuleEngine.check_victory(board_manager.all_pawns, board_manager.active_players)
 	if winner != -1:
 		_change_state(TurnState.GAME_OVER)
 		GameEvents.victory.emit(winner)
@@ -465,7 +465,8 @@ func _end_turn(reason: String) -> void:
 	_selected_die_id = -1
 	_roll_chain_count = 0  # le seuil de bust (§5.3) redémarre à 0 pour le joueur suivant
 
-	active_player = (active_player + 1) % BoardConfig.PLAYER_COUNT
+	var active_idx: int = board_manager.active_players.find(active_player)
+	active_player = board_manager.active_players[(active_idx + 1) % board_manager.active_players.size()]
 
 	GameEvents.turn_ended.emit(previous, active_player)
 	_change_state(TurnState.WAITING_FOR_ROLL)

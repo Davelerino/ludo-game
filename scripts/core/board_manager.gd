@@ -46,15 +46,22 @@ var capture_zones_root: Node3D
 ## Source de vérité d'état (les mêmes Dictionaries que ceux du RuleEngine).
 var all_pawns: Array = []
 
+## Sièges (0=Bleu, 1=Vert, 2=Rouge, 3=Jaune) participant à la partie en cours
+## — sous-ensemble des 4 sièges physiques du plateau (BoardConfig.PLAYER_COUNT),
+## voir GameSetup.get_active_players(). Par défaut les 4 (comportement inchangé
+## si personne n'a configuré de partie via le menu principal).
+var active_players: Array[int] = [0, 1, 2, 3]
 
-## Initialise les pions (4 par joueur, état MAISON) et assigne les dépendances.
+
+## Initialise les pions (4 par joueur actif, état MAISON) et assigne les dépendances.
 ## NE génère PAS le plateau — voir validate_board() pour le contrôle.
-func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout, p_yards_root: Node3D, p_capture_zones_root: Node3D) -> void:
+func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout, p_yards_root: Node3D, p_capture_zones_root: Node3D, p_active_players: Array[int] = [0, 1, 2, 3]) -> void:
 	config = p_config
 	grid_map = p_grid_map
 	layout = p_layout
 	yards_root = p_yards_root
 	capture_zones_root = p_capture_zones_root
+	active_players = p_active_players
 	if layout != null:
 		layout.rewire()
 	_init_pawns()
@@ -62,7 +69,7 @@ func setup(p_config: BoardConfig, p_grid_map: GridMap, p_layout: LudoBoardLayout
 
 func _init_pawns() -> void:
 	all_pawns.clear()
-	for player_id in range(BoardConfig.PLAYER_COUNT):
+	for player_id in active_players:
 		all_pawns.append_array(
 			BoardConfig.create_player_pawns(player_id, player_id * BoardConfig.PAWNS_PER_PLAYER)
 		)

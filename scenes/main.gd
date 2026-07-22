@@ -32,7 +32,8 @@ func _ready() -> void:
 	var layout: LudoBoardLayout = load("res://resources/BoardLayout.tres")
 	board_manager.setup(
 		cfg, board_root.get_node("GridMap"), layout,
-		board_root.get_node("Yards"), board_root.get_node("CaptureZones")
+		board_root.get_node("Yards"), board_root.get_node("CaptureZones"),
+		GameSetup.get_active_players()
 	)
 
 	# 2. Vérifie que le plateau a bien été cuit (warning si vide, pas fatal).

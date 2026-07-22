@@ -1,12 +1,121 @@
 [gd_scene format=3 uid="uid://cos8gqc5j4si2"]
 
-[ext_resource type="Script" path="res://ui/menu/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://gnkypy4agex1" path="res://ui/menu/main_menu.gd" id="1_menu"]
+[ext_resource type="Theme" path="res://resources/theme/game_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://ui/hud/player_chip.tscn" id="3_chip"]
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="ButtonGroup" id="ButtonGroup_playercount"]
+
+[node name="MainMenu" type="Control" unique_id=1949304902]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_menu")
+
+[node name="Background" type="ColorRect" parent="." unique_id=444373782]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.05, 0.07, 0.09, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=53802234]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=52246867]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=777280985]
+layout_mode = 2
+theme_type_variation = &"HudTurnLabel"
+theme_override_font_sizes/font_size = 64
+text = "LUDO 3D"
+horizontal_alignment = 1
+
+[node name="PlayerCountRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=480655218]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Count2Button" type="Button" parent="CenterContainer/VBoxContainer/PlayerCountRow" unique_id=1792337792]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_playercount")
+text = "2 Joueurs"
+
+[node name="Count3Button" type="Button" parent="CenterContainer/VBoxContainer/PlayerCountRow" unique_id=1376781410]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_playercount")
+text = "3 Joueurs"
+
+[node name="Count4Button" type="Button" parent="CenterContainer/VBoxContainer/PlayerCountRow" unique_id=735680450]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_playercount")
+text = "4 Joueurs"
+
+[node name="SwatchRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=777481205]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Swatch0" parent="CenterContainer/VBoxContainer/SwatchRow" unique_id=2122720230 instance=ExtResource("3_chip")]
+unique_name_in_owner = true
+
+[node name="Swatch1" parent="CenterContainer/VBoxContainer/SwatchRow" unique_id=1929048323 instance=ExtResource("3_chip")]
+unique_name_in_owner = true
+player_id = 1
+
+[node name="Swatch2" parent="CenterContainer/VBoxContainer/SwatchRow" unique_id=1909531466 instance=ExtResource("3_chip")]
+unique_name_in_owner = true
+player_id = 2
+
+[node name="Swatch3" parent="CenterContainer/VBoxContainer/SwatchRow" unique_id=532664229 instance=ExtResource("3_chip")]
+unique_name_in_owner = true
+player_id = 3
+
+[node name="ButtonSpacer" type="Control" parent="CenterContainer/VBoxContainer" unique_id=317927014]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=178038792]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+theme_type_variation = &"RollButton"
+text = "Jouer"
+
+[node name="ScenarioButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1884314761]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+text = "Configurer un scénario"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1377721049]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+text = "Quitter"

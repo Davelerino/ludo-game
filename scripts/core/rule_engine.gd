@@ -376,8 +376,9 @@ static func has_player_won(player_id: int, all_pawns: Array) -> bool:
 
 ## Retourne l'id du premier joueur ayant gagné, ou -1 si personne n'a encore gagné.
 ## Utilisé en mode GameEndMode.FIRST_TO_FINISH, y compris pendant un extra turn (L12).
-static func check_victory(all_pawns: Array) -> int:
-	for player_id in range(BoardConfig.PLAYER_COUNT):
+## `active_players` : sièges participant à la partie en cours (voir BoardManager.active_players).
+static func check_victory(all_pawns: Array, active_players: Array[int]) -> int:
+	for player_id in active_players:
 		if has_player_won(player_id, all_pawns):
 			return player_id
 	return -1
