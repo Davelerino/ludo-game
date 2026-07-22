@@ -55,3 +55,40 @@ enum MoveDurationMode { FIXED_TOTAL, PROPORTIONAL }
 @export var player_names: Array[String] = [
 	"Rouge", "Bleu", "Vert", "Jaune"
 ]
+
+@export_group("Empilement (barrières RING/HOME_LANE)")
+## Décalages locaux (plan XZ, Y toujours 0) appliqués aux pions quand une case
+## RING/HOME_LANE en contient exactement N (N=1 n'a pas d'entrée : toujours
+## Vector3.ZERO, voir PawnController.compute_stack_slot()). Index = position
+## dans le groupe trié par pawn.id croissant (RuleEngine.get_stack_at()).
+@export var stack_offsets_2: Array[Vector3] = [Vector3(-0.05, 0, 0), Vector3(0.05, 0, 0)]
+@export var stack_scale_2: float = 0.55
+
+@export var stack_offsets_3: Array[Vector3] = [Vector3(0, 0, 0.055), Vector3(-0.0476, 0, -0.0275), Vector3(0.0476, 0, -0.0275)]
+@export var stack_scale_3: float = 0.5
+
+@export var stack_offsets_4: Array[Vector3] = [
+	Vector3(-0.055, 0, -0.055), Vector3(0.055, 0, -0.055),
+	Vector3(-0.055, 0, 0.055), Vector3(0.055, 0, 0.055),
+]
+@export var stack_scale_4: float = 0.45
+
+## Lookup utilitaire — voir PawnController.compute_stack_slot(). `count` est
+## la taille du groupe (2..PAWNS_PER_PLAYER), `slot_index` la position dans
+## le groupe trié. Retourne Vector3.ZERO hors plage (défensif).
+func stack_offset_for(count: int, slot_index: int) -> Vector3:
+	var table: Array[Vector3] = []
+	match count:
+		2: table = stack_offsets_2
+		3: table = stack_offsets_3
+		4: table = stack_offsets_4
+		_: return Vector3.ZERO
+	return table[slot_index] if slot_index >= 0 and slot_index < table.size() else Vector3.ZERO
+
+## Lookup utilitaire de l'échelle — voir stack_offset_for().
+func stack_scale_for(count: int) -> float:
+	match count:
+		2: return stack_scale_2
+		3: return stack_scale_3
+		4: return stack_scale_4
+		_: return 1.0

@@ -86,6 +86,38 @@ static func get_barrier_owner_at(ring_index: int, all_pawns: Array) -> int:
 static func is_barrier_at(ring_index: int, all_pawns: Array) -> bool:
 	return get_barrier_owner_at(ring_index, all_pawns) != -1
 
+## Tous les pions du MÊME joueur présents sur la même case de home lane que
+## `pawn` (case privée par joueur — pas de partage inter-joueurs contrairement
+## à la ring lane, donc pawn.player + pawn.progress suffisent comme clé).
+## Retourne [] si `pawn` n'est pas en HOME_LANE. L'atterrissage en home lane ne
+## fait aucune vérification d'occupation (H3 : pas de capture, pas de barrière
+## possible en home lane), donc un empilement ici est un état de JEU NORMAL,
+## pas seulement un artefact de l'éditeur de scénario.
+static func get_pawns_on_home_lane_cell(pawn: Dictionary, all_pawns: Array) -> Array:
+	var result: Array = []
+	if pawn.state != PawnState.HOME_LANE:
+		return result
+	for p in all_pawns:
+		if p.player == pawn.player and p.state == PawnState.HOME_LANE and p.progress == pawn.progress:
+			result.append(p)
+	return result
+
+## Tous les pions (y compris `pawn` lui-même) partageant la case ACTUELLE de
+## `pawn`, que ce soit sur l'anneau ou en couloir final — utilisé par
+## PawnController pour l'empilement visuel des barrières (§6), PAS pour la
+## validation de règles (qui reste dans try_move()/get_barrier_owner_at()).
+## Retourne [] pour MAISON/CAPTURED/FINI (pas d'empilement visuel géré pour
+## ces états, voir BoardManager._yard_world_position()/_capture_zone_world_position()).
+## `all_pawns` est construit une fois par BoardManager par id croissant et
+## jamais réordonné, donc le groupe retourné est toujours trié par pawn.id.
+static func get_stack_at(pawn: Dictionary, all_pawns: Array) -> Array:
+	match pawn.state:
+		PawnState.RING:
+			return get_pawns_on_ring_index(get_ring_index(pawn), all_pawns)
+		PawnState.HOME_LANE:
+			return get_pawns_on_home_lane_cell(pawn, all_pawns)
+	return []
+
 
 # ----------------------------------------------------------------------------
 # 3. VALIDATION D'UN MOUVEMENT (coeur du RuleEngine)

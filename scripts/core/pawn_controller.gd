@@ -51,6 +51,13 @@ const RAY_LENGTH: float = 100.0
 # raycast de sélection) — voir _make_pawn_node().
 var _pawn_nodes: Dictionary = {}  # pawn.id -> StaticBody3D
 
+## Enfant "mesh" (l'instance de pawn_scenes[...]) de chaque pion, indexé par
+## pawn.id — cible EXCLUSIVE de la mise à l'échelle d'empilement (voir
+## _apply_stack_layout()). On ne touche JAMAIS l'échelle du StaticBody3D
+## lui-même (_pawn_nodes) car cela réduirait aussi son CollisionShape3D et
+## dégraderait la précision du raycast de sélection.
+var _pawn_mesh_nodes: Dictionary = {}  # pawn.id -> Node3D
+
 # --- Sélection courante ---
 var selected_pawn_id: int = -1
 
@@ -72,6 +79,7 @@ func setup(all_pawns: Array) -> void:
 		node.position = board_manager.cell_world_position(pawn)
 		_pawn_nodes[pawn.id] = node
 		add_child(node)
+	refresh_all_stacks()
 
 
 ## Fabrique le noeud visuel+cliquable d'un pion : un StaticBody3D portant le
@@ -85,7 +93,14 @@ func _make_pawn_node(pawn: Dictionary) -> StaticBody3D:
 	body.set_meta("pawn_id", pawn.id)
 
 	if pawn.player < pawn_scenes.size() and pawn_scenes[pawn.player] != null:
-		body.add_child(pawn_scenes[pawn.player].instantiate())
+		var mesh_root: Node3D = pawn_scenes[pawn.player].instantiate()
+		body.add_child(mesh_root)
+		# _pawn_mesh_nodes cible le vrai MeshInstance3D (ex. "Vert_013", voir
+		# sm_ludo_pawn_blue.tscn), pas le noeud racine du .glb importé (un
+		# Node3D nu) — utilisé par _apply_stack_layout() pour l'échelle
+		# d'empilement des barrières (voir refresh_all_stacks()).
+		var mesh_instance: MeshInstance3D = _find_mesh_instance(mesh_root)
+		_pawn_mesh_nodes[pawn.id] = mesh_instance if mesh_instance != null else mesh_root
 
 	var shape := CollisionShape3D.new()
 	var cylinder := CylinderShape3D.new()
@@ -98,12 +113,28 @@ func _make_pawn_node(pawn: Dictionary) -> StaticBody3D:
 	return body
 
 
+## Recherche en profondeur le premier MeshInstance3D sous `node` — c'est le
+## seul noeud du .glb importé qui soit un GeometryInstance3D et accepte donc
+## set_instance_shader_parameter() (voir _make_pawn_node()). Retourne null si
+## aucun n'est trouvé (défensif ; ne devrait pas arriver avec les scènes de
+## pion actuelles).
+func _find_mesh_instance(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D:
+		return node
+	for child in node.get_children():
+		var found: MeshInstance3D = _find_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
+
 ## Détruit tous les noeuds de pions (nouvelle partie).
 func clear() -> void:
 	for node in _pawn_nodes.values():
 		if is_instance_valid(node):
 			node.queue_free()
 	_pawn_nodes.clear()
+	_pawn_mesh_nodes.clear()
 	selected_pawn_id = -1
 	_legal_ids.clear()
 
@@ -131,6 +162,24 @@ func move_pawn_visual(
 	if node == null or not is_instance_valid(node):
 		return
 	var final_target: Vector3 = board_manager.cell_world_position(pawn)
+
+	# Empilement (§6/H3, RING/HOME_LANE uniquement) : calcule le slot du pion
+	# qui bouge dans SA nouvelle case (déjà mutée par apply_move() au moment
+	# de cet appel), puis re-slotte immédiatement (snap) tous les AUTRES
+	# pions affectés — ceux qu'il laisse derrière dans son ancienne case, et
+	# ceux déjà présents dans sa case d'arrivée. Fait au moment où CE Tween
+	# démarre (pas à la fin) pour que la case d'arrivée ne reste pas fausse
+	# pendant toute la durée de l'animation.
+	var mesh_node: Node3D = _pawn_mesh_nodes.get(pawn.id)
+	if pawn.state == PawnState.RING or pawn.state == PawnState.HOME_LANE:
+		var cell_pawns: Array = RuleEngine.get_stack_at(pawn, board_manager.all_pawns)
+		var slot: Dictionary = compute_stack_slot(pawn.id, cell_pawns, board_tuning)
+		final_target += slot.offset
+		if mesh_node != null and is_instance_valid(mesh_node):
+			mesh_node.scale = Vector3.ONE * slot.scale
+	elif mesh_node != null and is_instance_valid(mesh_node):
+		mesh_node.scale = Vector3.ONE
+	refresh_all_stacks(pawn.id)
 
 	if not animate:
 		node.position = final_target
@@ -199,6 +248,68 @@ func _append_capture_stage(tween: Tween, capture_info: Dictionary) -> void:
 	tween.tween_property(victim_node, "position", victim_target, cap_duration)\
 		.from(victim_from)\
 		.set_trans(trans).set_ease(ease_type)
+
+
+## Décalage local (XZ) et facteur d'échelle à appliquer à un pion identifié
+## par `pawn_id`, au sein du groupe `cell_pawns` (tous les pions RING/HOME_LANE
+## partageant sa case actuelle, y compris lui-même — voir RuleEngine.get_stack_at(),
+## dont l'ordre est stable, trié par pawn.id croissant). Fonction pure,
+## testable sans scène — voir tests/test_pawn_move_duration.gd.
+## `tuning` peut être null (fallback : jamais d'offset/scale).
+static func compute_stack_slot(pawn_id: int, cell_pawns: Array, tuning: BoardTuning) -> Dictionary:
+	var count: int = cell_pawns.size()
+	if count <= 1 or tuning == null:
+		return {"offset": Vector3.ZERO, "scale": 1.0}
+	var slot_index: int = 0
+	for i in range(cell_pawns.size()):
+		if cell_pawns[i].id == pawn_id:
+			slot_index = i
+			break
+	return {
+		"offset": tuning.stack_offset_for(count, slot_index),
+		"scale": tuning.stack_scale_for(count),
+	}
+
+
+## Applique (SNAP instantané, sans Tween) le décalage + échelle d'empilement
+## de tous les pions de `cell_pawns` — sauf `skip_pawn_id`, dont la position
+## est pilotée par le Tween appelant (move_pawn_visual()) ; seule SON échelle
+## est quand même snappée ici.
+func _apply_stack_layout(cell_pawns: Array, skip_pawn_id: int = -1) -> void:
+	for p in cell_pawns:
+		var slot: Dictionary = compute_stack_slot(p.id, cell_pawns, board_tuning)
+		var mesh_node: Node3D = _pawn_mesh_nodes.get(p.id)
+		if mesh_node != null and is_instance_valid(mesh_node):
+			mesh_node.scale = Vector3.ONE * slot.scale
+		if p.id == skip_pawn_id:
+			continue
+		var node: Node3D = _pawn_nodes.get(p.id)
+		if node != null and is_instance_valid(node):
+			node.position = board_manager.cell_world_position(p) + slot.offset
+
+
+## Recalcule l'empilement visuel de TOUTES les cases RING/HOME_LANE actuelles
+## (barrières et empilements de couloir final, §6/H3). Un seul passage O(n²)
+## dans le pire cas (16 pions, négligeable) — volontairement pas de tracking
+## "case sale" précise : plus simple et robuste face aux mouvements combinés/
+## captures qui touchent 2-3 cases à la fois.
+## Réinitialise aussi l'échelle à 1.0 pour tout pion qui n'est PLUS RING/
+## HOME_LANE (MAISON/CAPTURED/FINI), pour éviter une échelle rétrécie
+## persistante depuis un ancien empilement.
+func refresh_all_stacks(skip_pawn_id: int = -1) -> void:
+	var visited_ids := {}
+	for pawn in board_manager.all_pawns:
+		if pawn.id in visited_ids:
+			continue
+		if pawn.state != PawnState.RING and pawn.state != PawnState.HOME_LANE:
+			var mesh_node: Node3D = _pawn_mesh_nodes.get(pawn.id)
+			if mesh_node != null and is_instance_valid(mesh_node):
+				mesh_node.scale = Vector3.ONE
+			continue
+		var cell_pawns: Array = RuleEngine.get_stack_at(pawn, board_manager.all_pawns)
+		for p in cell_pawns:
+			visited_ids[p.id] = true
+		_apply_stack_layout(cell_pawns, skip_pawn_id)
 
 
 ## Durée d'un segment individuel, selon le mode configuré dans BoardTuning —

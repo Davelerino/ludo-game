@@ -72,4 +72,5 @@ func _ready() -> void:
 	var hud: HUD = ui_manager.get_node_or_null("HUD")
 	if hud:
 		hud.board_manager = board_manager
+		hud.dice_system = dice_system
 		hud.refresh()

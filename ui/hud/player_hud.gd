@@ -17,6 +17,8 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 
 @onready var _back_button: Button = %BackButton
 @onready var _history_toggle_button: Button = %HistoryToggleButton
+@onready var _settings_button: Button = %SettingsButton
+@onready var _settings_menu: SettingsMenu = %SettingsMenu
 @onready var _chip0: PlayerChip = %PlayerChip0
 @onready var _chip1: PlayerChip = %PlayerChip1
 @onready var _chip2: PlayerChip = %PlayerChip2
@@ -46,6 +48,7 @@ func _ready() -> void:
 	_chips = [_chip0, _chip1, _chip2, _chip3]
 	_back_button.pressed.connect(_on_back_pressed)
 	_history_toggle_button.pressed.connect(_on_history_toggle_pressed)
+	_settings_button.pressed.connect(_on_settings_toggle_pressed)
 
 
 ## Touche H (action "toggle_history_panel") : même effet que le bouton
@@ -58,6 +61,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_history_toggle_pressed() -> void:
 	_history_panel.visible = not _history_panel.visible
+
+
+func _on_settings_toggle_pressed() -> void:
+	_settings_menu.visible = not _settings_menu.visible
 
 
 func setup(p_turn_manager: TurnManager, p_board_manager: BoardManager) -> void:

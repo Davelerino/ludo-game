@@ -88,9 +88,12 @@ var _selected_die_id: int = -1
 var _last_result: Dictionary = {}
 
 ## Compteur de lancers PHYSIQUES consécutifs pour LE TOUR COURANT (§5.3) —
-## incrémenté à chaque _roll_once(), remis à 0 par _start_turn_loop(). Sert de
-## seuil de bust : un 3e double six consécutif annule le tour (voir
-## BoardConfig.MAX_CONSECUTIVE_ROLLS).
+## incrémenté à chaque _roll_once(), remis à 0 au début de CHAQUE tour (par
+## _start_turn_loop() pour le tout premier tour de la partie, par _end_turn()
+## pour tous les tours suivants — sans ce dernier reset, le compteur cumulerait
+## les lancers de TOUS les joueurs sur toute la partie au lieu d'être propre à
+## chaque tour). Sert de seuil de bust : un 3e double six consécutif annule le
+## tour (voir BoardConfig.MAX_CONSECUTIVE_ROLLS).
 var _roll_chain_count: int = 0
 
 ## Prochain id à distribuer dans dice_pool — continu sur toute la chaîne de
@@ -460,6 +463,7 @@ func _end_turn(reason: String) -> void:
 	locked_pawn_ids.clear()
 	dice_pool.clear()
 	_selected_die_id = -1
+	_roll_chain_count = 0  # le seuil de bust (§5.3) redémarre à 0 pour le joueur suivant
 
 	active_player = (active_player + 1) % BoardConfig.PLAYER_COUNT
 

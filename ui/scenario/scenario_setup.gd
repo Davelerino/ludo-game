@@ -19,6 +19,11 @@ const PawnState := BoardConfig.PawnState
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 
+## Dossier des positions sauvegardées (mode test) — JSON, un fichier par
+## position : {"name", "active_player", "pawns": [mêmes entrées que
+## apply_scenario()]}. user:// car res:// n'est pas inscriptible à l'exécution.
+const POSITIONS_DIR := "user://positions/"
+
 const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
 const STATE_ITEMS := [
@@ -34,10 +39,16 @@ var _rows: Array = []
 var _active_player_option: OptionButton
 var _warnings_label: RichTextLabel
 
+var _position_name_edit: LineEdit
+var _saved_positions_option: OptionButton
+var _load_position_button: Button
+var _delete_position_button: Button
+
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
+	_refresh_saved_positions_list()
 
 
 func _build() -> void:
@@ -59,6 +70,7 @@ func _build() -> void:
 	root_vbox.add_child(title)
 
 	root_vbox.add_child(_build_top_bar())
+	root_vbox.add_child(_build_positions_bar())
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -102,6 +114,49 @@ func _build_top_bar() -> HBoxContainer:
 	reset_button.text = "Réinitialiser au yard"
 	reset_button.pressed.connect(_on_reset_pressed)
 	row.add_child(reset_button)
+
+	return row
+
+
+## Barre de sauvegarde/chargement de positions (mode test, §voir POSITIONS_DIR) :
+## un nom + Sauvegarder à gauche, une liste des positions existantes +
+## Charger/Supprimer à droite.
+func _build_positions_bar() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+
+	var name_label := Label.new()
+	name_label.text = "Position :"
+	row.add_child(name_label)
+
+	_position_name_edit = LineEdit.new()
+	_position_name_edit.placeholder_text = "nom de la position"
+	_position_name_edit.custom_minimum_size = Vector2(180, 0)
+	row.add_child(_position_name_edit)
+
+	var save_button := Button.new()
+	save_button.text = "Sauvegarder"
+	save_button.pressed.connect(_on_save_position_pressed)
+	row.add_child(save_button)
+
+	var separator := VSeparator.new()
+	row.add_child(separator)
+
+	_saved_positions_option = OptionButton.new()
+	_saved_positions_option.custom_minimum_size = Vector2(180, 0)
+	_saved_positions_option.item_selected.connect(_on_saved_position_selected)
+	row.add_child(_saved_positions_option)
+
+	_load_position_button = Button.new()
+	_load_position_button.text = "Charger"
+	_load_position_button.pressed.connect(_on_load_position_pressed)
+	row.add_child(_load_position_button)
+
+	_delete_position_button = Button.new()
+	_delete_position_button.text = "Supprimer"
+	_delete_position_button.pressed.connect(_on_delete_position_pressed)
+	row.add_child(_delete_position_button)
 
 	return row
 
@@ -242,7 +297,10 @@ func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE)
 
 
-func _on_launch_pressed() -> void:
+## Construit les entrées pion à partir de l'état courant des lignes (utilisé
+## par le lancement ET la sauvegarde) + les avertissements non bloquants de
+## RuleEngine.validate_scenario_pawn() pour chaque pion.
+func _collect_entries() -> Dictionary:
 	var entries: Array[Dictionary] = []
 	var pawn_warnings: Array[String] = []
 
@@ -264,11 +322,164 @@ func _on_launch_pressed() -> void:
 			pawn_warnings.append("Pion %d : %s" % [row.pawn_id, reason])
 		entries.append(entry)
 
+	return {"entries": entries, "warnings": pawn_warnings}
+
+
+func _show_warnings(pawn_warnings: Array[String]) -> void:
+	# Non bloquant (outil de dev) : on affiche les avertissements mais on
+	# n'empêche jamais l'action — le testeur peut vouloir un état volontairement atypique.
 	if not pawn_warnings.is_empty():
-		# Non bloquant (outil de dev) : on affiche les avertissements mais on
-		# lance quand même — le testeur peut vouloir un état volontairement atypique.
 		_warnings_label.text = "[color=orange]%s[/color]" % "\n".join(pawn_warnings)
+	else:
+		_warnings_label.text = ""
+
+
+func _on_launch_pressed() -> void:
+	var collected: Dictionary = _collect_entries()
+	_show_warnings(collected.warnings)
 
 	var active_player: int = _active_player_option.get_item_id(_active_player_option.selected)
-	ScenarioState.set_pending(entries, active_player)
+	ScenarioState.set_pending(collected.entries, active_player)
 	get_tree().change_scene_to_file(GAME_SCENE)
+
+
+# ----------------------------------------------------------------------------
+# Sauvegarde / chargement de positions (mode test, voir POSITIONS_DIR)
+# ----------------------------------------------------------------------------
+
+func _on_save_position_pressed() -> void:
+	var collected: Dictionary = _collect_entries()
+	_show_warnings(collected.warnings)
+
+	var active_player: int = _active_player_option.get_item_id(_active_player_option.selected)
+	var raw_name: String = _position_name_edit.text.strip_edges()
+	if raw_name.is_empty():
+		raw_name = "position_%s" % Time.get_datetime_string_from_system().replace(":", "-").replace(" ", "_")
+		_position_name_edit.text = raw_name
+
+	var filename: String = _sanitize_filename(raw_name)
+	var data := {
+		"name": raw_name,
+		"active_player": active_player,
+		"pawns": collected.entries,
+	}
+
+	DirAccess.make_dir_recursive_absolute(POSITIONS_DIR)
+	var path: String = POSITIONS_DIR + filename + ".json"
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		push_warning("ScenarioSetup: échec de sauvegarde de la position '%s' (err=%s)." % [raw_name, FileAccess.get_open_error()])
+		return
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+
+	_refresh_saved_positions_list()
+	_select_position_in_list(filename)
+
+
+func _on_saved_position_selected(_index: int) -> void:
+	if _saved_positions_option.selected == -1:
+		return
+	_position_name_edit.text = _saved_positions_option.get_item_text(_saved_positions_option.selected)
+
+
+func _on_load_position_pressed() -> void:
+	if _saved_positions_option.item_count == 0 or _saved_positions_option.selected == -1:
+		return
+	var filename: String = _saved_positions_option.get_item_text(_saved_positions_option.selected)
+	var path: String = POSITIONS_DIR + filename + ".json"
+
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_warning("ScenarioSetup: échec de chargement de la position '%s'." % filename)
+		return
+	var text: String = file.get_as_text()
+	file.close()
+
+	var parsed: Variant = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("pawns"):
+		push_warning("ScenarioSetup: fichier de position invalide : %s" % filename)
+		return
+
+	_apply_loaded_entries(parsed.pawns, int(parsed.get("active_player", 0)))
+	_position_name_edit.text = str(parsed.get("name", filename))
+
+
+func _on_delete_position_pressed() -> void:
+	if _saved_positions_option.item_count == 0 or _saved_positions_option.selected == -1:
+		return
+	var filename: String = _saved_positions_option.get_item_text(_saved_positions_option.selected)
+	DirAccess.remove_absolute(POSITIONS_DIR + filename + ".json")
+	_refresh_saved_positions_list()
+
+
+## Peuple les lignes existantes à partir d'entrées chargées — pions absents du
+## fichier laissés inchangés (comme apply_scenario() côté BoardManager).
+func _apply_loaded_entries(entries: Array, active_player: int) -> void:
+	for raw_entry in entries:
+		var entry: Dictionary = raw_entry
+		var pawn_id: int = int(entry.get("id", -1))
+		var row: Dictionary = _row_by_pawn_id(pawn_id)
+		if row.is_empty():
+			continue
+
+		var state: int = int(entry.get("state", PawnState.MAISON))
+		var state_option: OptionButton = row.state_option
+		state_option.select(state_option.get_item_index(state))
+		_apply_state_constraints(row, state)
+
+		var progress_spin: SpinBox = row.progress_spin
+		if progress_spin.editable:
+			progress_spin.value = int(entry.get("progress", progress_spin.value))
+
+		if state == PawnState.CAPTURED:
+			var captor_id: int = int(entry.get("captor_id", -1))
+			if captor_id != -1:
+				var captor_option: OptionButton = row.captor_option
+				captor_option.select(captor_option.get_item_index(captor_id))
+
+	var clamped_player: int = clampi(active_player, 0, BoardConfig.PLAYER_COUNT - 1)
+	_active_player_option.select(_active_player_option.get_item_index(clamped_player))
+	_warnings_label.text = ""
+
+
+func _row_by_pawn_id(pawn_id: int) -> Dictionary:
+	for row in _rows:
+		if row.pawn_id == pawn_id:
+			return row
+	return {}
+
+
+func _refresh_saved_positions_list() -> void:
+	_saved_positions_option.clear()
+	var names: Array = []
+	if DirAccess.dir_exists_absolute(POSITIONS_DIR):
+		var files: PackedStringArray = DirAccess.get_files_at(POSITIONS_DIR)
+		for f in files:
+			if f.ends_with(".json"):
+				names.append(f.get_basename())
+	names.sort()
+	for n in names:
+		_saved_positions_option.add_item(n)
+
+	var has_positions: bool = _saved_positions_option.item_count > 0
+	_load_position_button.disabled = not has_positions
+	_delete_position_button.disabled = not has_positions
+	if has_positions:
+		_saved_positions_option.select(0)
+
+
+func _select_position_in_list(filename: String) -> void:
+	for i in range(_saved_positions_option.item_count):
+		if _saved_positions_option.get_item_text(i) == filename:
+			_saved_positions_option.select(i)
+			return
+
+
+## Remplace tout caractère hors [A-Za-z0-9_-] par "_" pour obtenir un nom de
+## fichier sûr sur tous les OS, sans dépendre de l'échappement de POSITIONS_DIR.
+func _sanitize_filename(name: String) -> String:
+	var regex := RegEx.new()
+	regex.compile("[^A-Za-z0-9_\\-]+")
+	var cleaned: String = regex.sub(name, "_", true).strip_edges()
+	return cleaned if not cleaned.is_empty() else "position"

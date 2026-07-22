@@ -45,6 +45,9 @@ func _init() -> void:
 	test_combined_yard_exit_blocked_by_barrier_falls_back()
 	test_combined_move_overshoot_illegal()
 	test_combined_yard_exit_blocked_by_ally_barrier_on_start_tile()
+	test_get_stack_at_groups_ring_allies_sorted_by_id()
+	test_get_stack_at_home_lane_groups_only_same_player()
+	test_get_stack_at_single_pawn_and_non_ring_home_lane_states()
 
 	print("\n=== Résultat : %d PASS / %d FAIL ===" % [_pass_count, _fail_count])
 	quit(0 if _fail_count == 0 else 1)
@@ -382,3 +385,57 @@ func test_combined_yard_exit_blocked_by_ally_barrier_on_start_tile() -> void:
 	var result: Dictionary = RuleEngine.try_combined_move(mover, 6, 3, all_pawns)
 	_assert(not result.legal and result.reason == "path_blocked_by_barrier",
 		"la barrière alliée sur la start tile bloque aussi le passage (pas seulement les barrières ennemies)")
+
+
+# ----------------------------------------------------------------------------
+# get_stack_at() / get_pawns_on_home_lane_cell() — empilement visuel (§6/H3)
+# ----------------------------------------------------------------------------
+
+func test_get_stack_at_groups_ring_allies_sorted_by_id() -> void:
+	print("-- test_get_stack_at_groups_ring_allies_sorted_by_id --")
+	var low_id: Dictionary = _pawn_ring(2, 0, 10)
+	var high_id: Dictionary = _pawn_ring(5, 0, 10)
+	var distractor: Dictionary = _pawn_ring(3, 1, 20)
+	# all_pawns doit être fourni trié par id croissant : c'est l'ordre garanti
+	# par BoardManager.all_pawns (jamais réordonné) dont dépend le tri du
+	# groupe retourné — get_pawns_on_ring_index() ne trie pas lui-même, il
+	# préserve l'ordre d'entrée (voir docstring de get_stack_at()).
+	var all_pawns: Array = [low_id, high_id, distractor]
+
+	var stack: Array = RuleEngine.get_stack_at(high_id, all_pawns)
+	_assert(stack.size() == 2, "2 pions alliés sur la même case d'anneau -> groupe de taille 2")
+	_assert(stack[0].id == 2 and stack[1].id == 5, "groupe dans l'ordre de all_pawns (par id croissant, garanti par BoardManager)")
+
+
+func test_get_stack_at_home_lane_groups_only_same_player() -> void:
+	print("-- test_get_stack_at_home_lane_groups_only_same_player --")
+	var ally_a: Dictionary = _pawn_ring(0, 0, 52)
+	ally_a.state = PawnState.HOME_LANE
+	var ally_b: Dictionary = _pawn_ring(1, 0, 52)
+	ally_b.state = PawnState.HOME_LANE
+	# Même progress NUMÉRIQUE mais un AUTRE joueur : case de home lane privée,
+	# ne doit jamais être regroupée avec celle du joueur 0.
+	var other_player: Dictionary = _pawn_ring(2, 1, 52)
+	other_player.state = PawnState.HOME_LANE
+	var all_pawns: Array = [ally_a, ally_b, other_player]
+
+	var stack: Array = RuleEngine.get_stack_at(ally_a, all_pawns)
+	_assert(stack.size() == 2, "2 pions alliés au même progress en home lane -> groupe de taille 2")
+	_assert(stack[0].id == 0 and stack[1].id == 1, "le pion d'un autre joueur au même progress numérique est exclu")
+
+
+func test_get_stack_at_single_pawn_and_non_ring_home_lane_states() -> void:
+	print("-- test_get_stack_at_single_pawn_and_non_ring_home_lane_states --")
+	var lone_ring: Dictionary = _pawn_ring(0, 0, 10)
+	_assert(RuleEngine.get_stack_at(lone_ring, [lone_ring]).size() == 1,
+		"un pion seul sur sa case d'anneau -> groupe de taille 1")
+
+	var yard: Dictionary = _pawn_yard(1, 0)
+	_assert(RuleEngine.get_stack_at(yard, [yard]).is_empty(), "pion MAISON -> groupe vide (pas d'empilement visuel géré)")
+
+	var captured: Dictionary = _pawn_captured(2, 0, 1)
+	_assert(RuleEngine.get_stack_at(captured, [captured]).is_empty(), "pion CAPTURED -> groupe vide")
+
+	var finished: Dictionary = _pawn_ring(3, 0, BoardConfig.FINISH_PROGRESS)
+	finished.state = PawnState.FINI
+	_assert(RuleEngine.get_stack_at(finished, [finished]).is_empty(), "pion FINI -> groupe vide (hors scope)")

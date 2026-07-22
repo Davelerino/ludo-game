@@ -26,6 +26,11 @@ const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 ## — contrairement à TurnManager, lu directement pour dice_pool ci-dessous).
 var board_manager: BoardManager
 
+## Injecté par main.gd — permet de forcer les valeurs du prochain lancer
+## (voir _build_forced_dice_row()) sans attendre l'aléatoire, pour rejouer
+## un scénario précis (capture, barrière, sortie de yard...).
+var dice_system: DiceSystem
+
 var _player_swatch: ColorRect
 var _player_label: Label
 var _state_label: Label
@@ -33,6 +38,9 @@ var _dice_label: Label
 var _offered_label: Label
 var _pawns_table: RichTextLabel
 var _log: RichTextLabel
+var _forced_die_a: SpinBox
+var _forced_die_b: SpinBox
+var _forced_status_label: Label
 
 var _offered_pawn_ids: Array = []
 var _offered_dice_value: int = -1
@@ -89,6 +97,8 @@ func _build() -> void:
 	_offered_label = Label.new()
 	vbox.add_child(_offered_label)
 
+	vbox.add_child(_build_forced_dice_row())
+
 	# Tableau compact des 16 pions (bbcode [table], pas de noeuds par ligne à
 	# reconstruire à la main à chaque rafraîchissement).
 	_pawns_table = RichTextLabel.new()
@@ -113,6 +123,72 @@ func _build() -> void:
 	vbox.add_child(_log)
 
 
+## Ligne de test : force les 2 valeurs du PROCHAIN lancer (dice_system.gd,
+## one-shot) au lieu d'attendre un tirage aléatoire — pratique pour rejouer
+## un scénario précis (capture, barrière, sortie de yard exacte...).
+func _build_forced_dice_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+
+	var label := Label.new()
+	label.text = "Forcer prochain lancer :"
+	row.add_child(label)
+
+	_forced_die_a = SpinBox.new()
+	_forced_die_a.min_value = 1
+	_forced_die_a.max_value = 6
+	_forced_die_a.value = 6
+	_forced_die_a.custom_minimum_size = Vector2(56, 0)
+	row.add_child(_forced_die_a)
+
+	_forced_die_b = SpinBox.new()
+	_forced_die_b.min_value = 1
+	_forced_die_b.max_value = 6
+	_forced_die_b.value = 6
+	_forced_die_b.custom_minimum_size = Vector2(56, 0)
+	row.add_child(_forced_die_b)
+
+	var apply_button := Button.new()
+	apply_button.text = "Forcer"
+	apply_button.pressed.connect(_on_force_dice_pressed)
+	row.add_child(apply_button)
+
+	var clear_button := Button.new()
+	clear_button.text = "Annuler"
+	clear_button.pressed.connect(_on_clear_forced_dice_pressed)
+	row.add_child(clear_button)
+
+	_forced_status_label = Label.new()
+	row.add_child(_forced_status_label)
+	_refresh_forced_status()
+
+	return row
+
+
+func _on_force_dice_pressed() -> void:
+	if not dice_system:
+		return
+	dice_system.set_forced_pair(int(_forced_die_a.value), int(_forced_die_b.value))
+	_refresh_forced_status()
+
+
+func _on_clear_forced_dice_pressed() -> void:
+	if not dice_system:
+		return
+	dice_system.clear_forced_pair()
+	_refresh_forced_status()
+
+
+func _refresh_forced_status() -> void:
+	if not _forced_status_label:
+		return
+	if dice_system and dice_system.has_forced_pair():
+		var pair: Array[int] = dice_system.forced_pair
+		_forced_status_label.text = "(forçage actif : %d, %d)" % [pair[0], pair[1]]
+	else:
+		_forced_status_label.text = "(aléatoire)"
+
+
 ## Rafraîchit les champs qui dépendent de dice_system/board_manager — à
 ## appeler une fois ces références injectées par main.gd (elles ne le sont
 ## pas encore quand _ready() tourne : HUD est un enfant, donc prêt avant le
@@ -120,11 +196,13 @@ func _build() -> void:
 func refresh() -> void:
 	_refresh_dice_label()
 	_refresh_pawns_table()
+	_refresh_forced_status()
 
 
 func _on_dice_rolled(a: int, b: int, is_double: bool) -> void:
 	_append_log("🎲 Dés : [b]%d[/b] et [b]%d[/b]%s." % [a, b, ("  (DOUBLE)" if is_double else "")])
 	_refresh_dice_label()
+	_refresh_forced_status()  # le forçage est one-shot : se réaffiche "(aléatoire)" après consommation.
 
 
 func _on_turn_ended(_prev: int, next_p: int) -> void:
