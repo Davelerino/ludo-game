@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://bwl7fa7gpjppl" path="res://ui/dice/dice_pool_view.gd" id="7_dice_pool_view"]
 [ext_resource type="PackedScene" path="res://ui/hud/history_panel.tscn" id="8_history"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_menu.tscn" id="9_settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/quit/quit_confirm_dialog.tscn" id="10_quit_confirm"]
 
 [node name="PlayerHUD" type="Control" unique_id=726999477]
 layout_mode = 3
@@ -210,5 +211,9 @@ offset_bottom = -122.0
 grow_horizontal = 0
 
 [node name="SettingsMenu" parent="." unique_id=1026583017 instance=ExtResource("9_settings")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="QuitConfirmDialog" parent="." instance=ExtResource("10_quit_confirm")]
 unique_name_in_owner = true
 layout_mode = 1

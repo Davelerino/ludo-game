@@ -19,6 +19,7 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 @onready var _history_toggle_button: Button = %HistoryToggleButton
 @onready var _settings_button: Button = %SettingsButton
 @onready var _settings_menu: SettingsMenu = %SettingsMenu
+@onready var _quit_confirm_dialog: QuitConfirmDialog = %QuitConfirmDialog
 @onready var _chip0: PlayerChip = %PlayerChip0
 @onready var _chip1: PlayerChip = %PlayerChip1
 @onready var _chip2: PlayerChip = %PlayerChip2
@@ -49,14 +50,20 @@ func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	_history_toggle_button.pressed.connect(_on_history_toggle_pressed)
 	_settings_button.pressed.connect(_on_settings_toggle_pressed)
+	_quit_confirm_dialog.confirmed.connect(_on_quit_confirmed)
 
 
 ## Touche H (action "toggle_history_panel") : même effet que le bouton
 ## %HistoryToggleButton — le panneau reste accessible même caché, puisque ce
 ## bouton vit dans TopBarRow et non dans HistoryPanel lui-même.
+## Touche Échap (action "ui_cancel") : ouvre la même confirmation de sortie
+## que %BackButton — QuitConfirmDialog gère elle-même sa fermeture sur Échap
+## quand elle est déjà visible (voir ui/quit/quit_confirm_dialog.gd).
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_history_panel"):
 		_on_history_toggle_pressed()
+	elif event.is_action_pressed("ui_cancel") and not _quit_confirm_dialog.visible:
+		_on_back_pressed()
 
 
 func _on_history_toggle_pressed() -> void:
@@ -87,6 +94,10 @@ func setup(p_turn_manager: TurnManager, p_board_manager: BoardManager) -> void:
 
 
 func _on_back_pressed() -> void:
+	_quit_confirm_dialog.open()
+
+
+func _on_quit_confirmed() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE)
 
 
