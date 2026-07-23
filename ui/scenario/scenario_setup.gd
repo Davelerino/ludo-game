@@ -24,6 +24,13 @@ const GAME_SCENE := "res://scenes/main.tscn"
 ## apply_scenario()]}. user:// car res:// n'est pas inscriptible à l'exécution.
 const POSITIONS_DIR := "user://positions/"
 
+## Dossier des PRÉRÉGLAGES fournis avec le projet (committés en git, res://
+## est en lecture seule mais lisible) : mêmes cas de figure importants à
+## tester (fin de partie, barrières, capture...) prêts à charger sans tout
+## configurer à la main. Même format JSON que POSITIONS_DIR ci-dessus, donc
+## réutilise directement _apply_loaded_entries().
+const PRESETS_DIR := "res://scenarios/presets/"
+
 const PALETTE: PlayerPalette = preload("res://resources/PlayerPalette.tres")
 
 const STATE_ITEMS := [
@@ -44,11 +51,15 @@ var _saved_positions_option: OptionButton
 var _load_position_button: Button
 var _delete_position_button: Button
 
+var _preset_option: OptionButton
+var _load_preset_button: Button
+
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
 	_refresh_saved_positions_list()
+	_refresh_presets_list()
 
 
 func _build() -> void:
@@ -70,6 +81,7 @@ func _build() -> void:
 	root_vbox.add_child(title)
 
 	root_vbox.add_child(_build_top_bar())
+	root_vbox.add_child(_build_presets_bar())
 	root_vbox.add_child(_build_positions_bar())
 
 	var scroll := ScrollContainer.new()
@@ -114,6 +126,29 @@ func _build_top_bar() -> HBoxContainer:
 	reset_button.text = "Réinitialiser au yard"
 	reset_button.pressed.connect(_on_reset_pressed)
 	row.add_child(reset_button)
+
+	return row
+
+
+## Barre de préréglages fournis avec le projet (voir PRESETS_DIR) : cas de
+## figure importants (fin de partie, barrières, capture...) prêts à charger.
+func _build_presets_bar() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+
+	var label := Label.new()
+	label.text = "Préréglages :"
+	row.add_child(label)
+
+	_preset_option = OptionButton.new()
+	_preset_option.custom_minimum_size = Vector2(280, 0)
+	row.add_child(_preset_option)
+
+	_load_preset_button = Button.new()
+	_load_preset_button.text = "Charger le préréglage"
+	_load_preset_button.pressed.connect(_on_load_preset_pressed)
+	row.add_child(_load_preset_button)
 
 	return row
 
@@ -483,3 +518,48 @@ func _sanitize_filename(name: String) -> String:
 	regex.compile("[^A-Za-z0-9_\\-]+")
 	var cleaned: String = regex.sub(name, "_", true).strip_edges()
 	return cleaned if not cleaned.is_empty() else "position"
+
+
+# ----------------------------------------------------------------------------
+# Préréglages fournis avec le projet (mode test, voir PRESETS_DIR)
+# ----------------------------------------------------------------------------
+
+func _refresh_presets_list() -> void:
+	_preset_option.clear()
+	var names: Array = []
+	if DirAccess.dir_exists_absolute(PRESETS_DIR):
+		var files: PackedStringArray = DirAccess.get_files_at(PRESETS_DIR)
+		for f in files:
+			if f.ends_with(".json"):
+				names.append(f.get_basename())
+	names.sort()
+	for n in names:
+		_preset_option.add_item(n)
+
+	_load_preset_button.disabled = _preset_option.item_count == 0
+	if _preset_option.item_count > 0:
+		_preset_option.select(0)
+
+
+func _on_load_preset_pressed() -> void:
+	if _preset_option.item_count == 0 or _preset_option.selected == -1:
+		return
+	var filename: String = _preset_option.get_item_text(_preset_option.selected)
+	var path: String = PRESETS_DIR + filename + ".json"
+
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_warning("ScenarioSetup: échec de chargement du préréglage '%s'." % filename)
+		return
+	var text: String = file.get_as_text()
+	file.close()
+
+	var parsed: Variant = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("pawns"):
+		push_warning("ScenarioSetup: préréglage invalide : %s" % filename)
+		return
+
+	# Contrairement à _on_load_position_pressed(), on ne touche PAS
+	# _position_name_edit : un préréglage n'est pas "ta" position en cours de
+	# sauvegarde, pas de risque de l'écraser par erreur en cliquant Sauvegarder.
+	_apply_loaded_entries(parsed.pawns, int(parsed.get("active_player", 0)))

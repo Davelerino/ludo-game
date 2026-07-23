@@ -1,0 +1,8 @@
+{
+	"name": "Capture à portée (un 4)",
+	"active_player": 0,
+	"pawns": [
+		{"id": 0, "state": 1, "progress": 10, "captor_id": -1},
+		{"id": 4, "state": 1, "progress": 1, "captor_id": -1}
+	]
+}
