@@ -1,0 +1,8 @@
+{
+	"name": "Barrière ennemie sur l'anneau (B1/B2)",
+	"active_player": 0,
+	"pawns": [
+		{"id": 4, "state": 1, "progress": 39, "captor_id": -1},
+		{"id": 5, "state": 1, "progress": 39, "captor_id": -1}
+	]
+}

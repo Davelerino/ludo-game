@@ -1,0 +1,9 @@
+{
+	"name": "Barrière (auto-blocage) en couloir final",
+	"active_player": 0,
+	"pawns": [
+		{"id": 0, "state": 2, "progress": 53, "captor_id": -1},
+		{"id": 1, "state": 2, "progress": 53, "captor_id": -1},
+		{"id": 2, "state": 2, "progress": 51, "captor_id": -1}
+	]
+}

@@ -1,0 +1,10 @@
+{
+	"name": "Victoire imminente",
+	"active_player": 0,
+	"pawns": [
+		{"id": 0, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 1, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 2, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 3, "state": 2, "progress": 55, "captor_id": -1}
+	]
+}

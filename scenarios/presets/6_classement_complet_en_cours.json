@@ -1,0 +1,17 @@
+{
+	"name": "Classement complet en cours (choisir ce mode au menu avant de charger)",
+	"active_player": 0,
+	"pawns": [
+		{"id": 0, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 1, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 2, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 3, "state": 2, "progress": 55, "captor_id": -1},
+		{"id": 4, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 5, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 6, "state": 3, "progress": 56, "captor_id": -1},
+		{"id": 7, "state": 2, "progress": 53, "captor_id": -1},
+		{"id": 8, "state": 1, "progress": 40, "captor_id": -1},
+		{"id": 9, "state": 1, "progress": 25, "captor_id": -1},
+		{"id": 12, "state": 1, "progress": 10, "captor_id": -1}
+	]
+}
