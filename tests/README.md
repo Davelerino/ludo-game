@@ -13,7 +13,7 @@ godot --headless --script res://tests/test_rule_engine.gd
 Résultat attendu :
 
 ```
-39 PASS / 0 FAIL
+50 PASS / 0 FAIL
 ```
 
 ## Couverture (cas limites du GDD)
@@ -34,7 +34,10 @@ Résultat attendu :
 | `test_home_lane_entry` | §7.2, L5 |
 | `test_home_lane_overshoot_illegal` | H4, L9 |
 | `test_home_lane_exact_finish` | H1, H5 |
-| `test_no_barrier_effect_in_home_lane` | §7.5 |
+| `test_home_lane_transit_blocked_by_own_barrier` | barrière en home lane (transit) |
+| `test_home_lane_landing_forms_barrier` | barrière en home lane (atterrissage) |
+| `test_home_lane_pawn_can_leave_own_barrier` | barrière en home lane (auto-évasion) |
+| `test_home_lane_finish_never_forms_barrier` | barrière en home lane (case FINI exclue) |
 | `test_victory_detection` | §2.3, L12 |
 | `test_has_any_legal_move_over_pool` | §5.1 (pool à N dés) |
 | `test_find_wasted_die_id_single_casualty` | §8 (filet anti-gâchis) |

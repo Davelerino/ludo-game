@@ -33,7 +33,10 @@ func _init() -> void:
 	test_home_lane_entry()
 	test_home_lane_overshoot_illegal()
 	test_home_lane_exact_finish()
-	test_no_barrier_effect_in_home_lane()
+	test_home_lane_transit_blocked_by_own_barrier()
+	test_home_lane_landing_forms_barrier()
+	test_home_lane_pawn_can_leave_own_barrier()
+	test_home_lane_finish_never_forms_barrier()
 	test_victory_detection()
 	test_has_any_legal_move_over_pool()
 	test_find_wasted_die_id_single_casualty()
@@ -204,14 +207,51 @@ func test_home_lane_exact_finish() -> void:
 		"atterrissage exact sur le centre = pion FINI")
 
 
-func test_no_barrier_effect_in_home_lane() -> void:
-	print("-- test_no_barrier_effect_in_home_lane (§7.5) --")
-	var mover: Dictionary = _pawn_ring(0, 0, 52)
+func test_home_lane_transit_blocked_by_own_barrier() -> void:
+	print("-- test_home_lane_transit_blocked_by_own_barrier (barrière en home lane, transit) --")
+	var mover: Dictionary = _pawn_ring(0, 0, 51)
 	mover.state = PawnState.HOME_LANE
-	var ally_blocker: Dictionary = _pawn_ring(1, 0, 53)
-	ally_blocker.state = PawnState.HOME_LANE
-	_assert(RuleEngine.try_move(mover, 1, [mover, ally_blocker]).legal,
-		"aucune barrière ne s'applique en home lane")
+	var blocker_a: Dictionary = _pawn_ring(1, 0, 53)
+	blocker_a.state = PawnState.HOME_LANE
+	var blocker_b: Dictionary = _pawn_ring(2, 0, 53)
+	blocker_b.state = PawnState.HOME_LANE
+	var r: Dictionary = RuleEngine.try_move(mover, 3, [mover, blocker_a, blocker_b])
+	_assert(not r.legal and r.reason == "path_blocked_by_barrier",
+		"une barrière alliée (2 pions) sur une case intermédiaire de home lane bloque le transit")
+
+
+func test_home_lane_landing_forms_barrier() -> void:
+	print("-- test_home_lane_landing_forms_barrier (atterrissage forme une barrière) --")
+	var mover: Dictionary = _pawn_ring(0, 0, 51)
+	mover.state = PawnState.HOME_LANE
+	var ally: Dictionary = _pawn_ring(1, 0, 53)
+	ally.state = PawnState.HOME_LANE
+	var r: Dictionary = RuleEngine.try_move(mover, 2, [mover, ally])
+	_assert(r.legal and not r.capture and r.forms_barrier,
+		"atterrir sur la case d'un allié en home lane est autorisé et forme une barrière")
+
+
+func test_home_lane_pawn_can_leave_own_barrier() -> void:
+	print("-- test_home_lane_pawn_can_leave_own_barrier --")
+	var stacked_a: Dictionary = _pawn_ring(0, 0, 53)
+	stacked_a.state = PawnState.HOME_LANE
+	var stacked_b: Dictionary = _pawn_ring(1, 0, 53)
+	stacked_b.state = PawnState.HOME_LANE
+	var r: Dictionary = RuleEngine.try_move(stacked_a, 1, [stacked_a, stacked_b])
+	_assert(r.legal, "un pion peut toujours avancer depuis sa propre case, même s'il y forme une barrière")
+
+
+func test_home_lane_finish_never_forms_barrier() -> void:
+	print("-- test_home_lane_finish_never_forms_barrier --")
+	var finished_a: Dictionary = _pawn_ring(1, 0, BoardConfig.FINISH_PROGRESS)
+	finished_a.state = PawnState.FINI
+	var finished_b: Dictionary = _pawn_ring(2, 0, BoardConfig.FINISH_PROGRESS)
+	finished_b.state = PawnState.FINI
+	var mover: Dictionary = _pawn_ring(0, 0, 55)
+	mover.state = PawnState.HOME_LANE
+	var r: Dictionary = RuleEngine.try_move(mover, 1, [mover, finished_a, finished_b])
+	_assert(r.legal and r.finishes and not r.forms_barrier,
+		"la case FINI (progress 56) n'est jamais comptée comme une barrière de home lane")
 
 
 func test_victory_detection() -> void:

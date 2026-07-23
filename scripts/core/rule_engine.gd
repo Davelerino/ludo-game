@@ -86,13 +86,34 @@ static func get_barrier_owner_at(ring_index: int, all_pawns: Array) -> int:
 static func is_barrier_at(ring_index: int, all_pawns: Array) -> bool:
 	return get_barrier_owner_at(ring_index, all_pawns) != -1
 
+## Nombre de pions du joueur `player_id` présents sur la case `home_progress`
+## de SA PROPRE home lane. Fonction interne partagée par
+## is_home_lane_barrier_at() (transit) et try_move() (atterrissage, où il faut
+## compter les occupants AVANT l'arrivée du pion qui atterrit).
+static func _count_home_lane_occupants(player_id: int, home_progress: int, all_pawns: Array) -> int:
+	var count: int = 0
+	for p in all_pawns:
+		if p.player == player_id and p.state == PawnState.HOME_LANE and p.progress == home_progress:
+			count += 1
+	return count
+
+## Vrai si le joueur `player_id` a une barrière (>= BARRIER_MIN_PAWNS pions)
+## sur la case `home_progress` de SA PROPRE home lane. Contrairement à
+## get_barrier_owner_at() (ring, partagé entre joueurs, peut être "ennemie"),
+## la home lane est privée par joueur (§7) : une barrière n'y est jamais
+## qu'alliée, pas besoin de retourner un owner.
+static func is_home_lane_barrier_at(player_id: int, home_progress: int, all_pawns: Array) -> bool:
+	return _count_home_lane_occupants(player_id, home_progress, all_pawns) >= BoardConfig.BARRIER_MIN_PAWNS
+
 ## Tous les pions du MÊME joueur présents sur la même case de home lane que
 ## `pawn` (case privée par joueur — pas de partage inter-joueurs contrairement
 ## à la ring lane, donc pawn.player + pawn.progress suffisent comme clé).
-## Retourne [] si `pawn` n'est pas en HOME_LANE. L'atterrissage en home lane ne
-## fait aucune vérification d'occupation (H3 : pas de capture, pas de barrière
-## possible en home lane), donc un empilement ici est un état de JEU NORMAL,
-## pas seulement un artefact de l'éditeur de scénario.
+## Retourne [] si `pawn` n'est pas en HOME_LANE. Un empilement ici peut
+## désormais constituer une barrière (>= BARRIER_MIN_PAWNS, voir
+## is_home_lane_barrier_at()) qui bloque le TRANSIT des autres pions du même
+## joueur — l'atterrissage lui-même reste toujours autorisé (H3 : pas de
+## capture possible, case privée). Cette fonction-ci reste utilisée pour
+## l'empilement VISUEL (get_stack_at(), PawnController).
 static func get_pawns_on_home_lane_cell(pawn: Dictionary, all_pawns: Array) -> Array:
 	var result: Array = []
 	if pawn.state != PawnState.HOME_LANE:
@@ -105,7 +126,8 @@ static func get_pawns_on_home_lane_cell(pawn: Dictionary, all_pawns: Array) -> A
 ## Tous les pions (y compris `pawn` lui-même) partageant la case ACTUELLE de
 ## `pawn`, que ce soit sur l'anneau ou en couloir final — utilisé par
 ## PawnController pour l'empilement visuel des barrières (§6), PAS pour la
-## validation de règles (qui reste dans try_move()/get_barrier_owner_at()).
+## validation de règles (qui reste dans try_move()/get_barrier_owner_at()
+## pour l'anneau, is_home_lane_barrier_at() pour le couloir final).
 ## Retourne [] pour MAISON/CAPTURED/FINI (pas d'empilement visuel géré pour
 ## ces états, voir BoardManager._yard_world_position()/_capture_zone_world_position()).
 ## `all_pawns` est construit une fois par BoardManager par id croissant et
@@ -150,9 +172,9 @@ static func _empty_result(reason: String) -> Dictionary:
 	}
 
 ## Valide (sans muter l'état) le déplacement de `pawn` avec la valeur `dice_value`.
-## Couvre : sortie du yard (§4.2), transit/atterrissage sur barrière (§6.3),
-## capture (§8.1-8.2), dépassement en home lane (H4/H5, L9), entrée en home lane (L5),
-## évasion de zone de capture.
+## Couvre : sortie du yard (§4.2), transit/atterrissage sur barrière — anneau
+## (§6.3) et home lane, capture (§8.1-8.2), dépassement en home lane (H4/H5, L9),
+## entrée en home lane (L5), évasion de zone de capture.
 static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dictionary:
 	if pawn.state == PawnState.FINI:
 		return _empty_result("pawn_already_finished")
@@ -209,9 +231,11 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 	if target_progress > BoardConfig.FINISH_PROGRESS:
 		return _empty_result("overshoot_home_center")
 
-	# --- Vérification des cases intermédiaires (transit), hors home lane (§7.5) ---
+	# --- Vérification des cases intermédiaires (transit), anneau OU home lane ---
 	# Les intermédiaires vont de start_progress+1 à target_progress-1 (le dernier
-	# pas, target_progress, est traité séparément comme "atterrissage").
+	# pas, target_progress, est traité séparément comme "atterrissage"). Une
+	# barrière en home lane bloque aussi le transit — comme sur l'anneau
+	# (B1/B2/B6) — mais elle n'y est jamais qu'alliée (case privée par joueur, §7).
 	for intermediate_progress in range(start_progress + 1, target_progress):
 		if intermediate_progress <= BoardConfig.HOME_ENTRY_PROGRESS - 1:
 			var offset: int = BoardConfig.get_player_offset(pawn.player)
@@ -219,7 +243,10 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 			if is_barrier_at(inter_ring_index, all_pawns):
 				# B1/B2/B6 : aucune barrière (alliée ou ennemie) n'est traversable.
 				return _empty_result("path_blocked_by_barrier")
-		# Sinon : case intermédiaire en home lane -> pas de barrière possible (§7.5), on ignore.
+		elif is_home_lane_barrier_at(pawn.player, intermediate_progress, all_pawns):
+			# Barrière (toujours alliée) sur une case de home lane traversée :
+			# bloque le transit exactement comme sur l'anneau.
+			return _empty_result("path_blocked_by_barrier")
 
 	var result: Dictionary = _empty_result("")
 	result.legal = true
@@ -231,9 +258,20 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 		if target_progress == BoardConfig.FINISH_PROGRESS:
 			result.finishes = true
 			result.new_state = PawnState.FINI
+			# La case FINI (56) n'est pas une case de home lane (PawnState.FINI,
+			# pas HOME_LANE) : elle ne peut jamais accumuler de "barrière".
 		else:
 			result.new_state = PawnState.HOME_LANE
-		# H3 : pas de capture, pas de barrière possible en home lane.
+			# Atterrissage TOUJOURS autorisé (case privée, jamais de barrière
+			# ennemie possible ici) ; s'il porte le compte à
+			# >= BARRIER_MIN_PAWNS, il forme/renforce une barrière alliée,
+			# comme B6 sur l'anneau.
+			var home_occupants: int = _count_home_lane_occupants(pawn.player, target_progress, all_pawns)
+			if home_occupants + 1 >= BoardConfig.BARRIER_MIN_PAWNS:
+				result.forms_barrier = true
+		# H3 : pas de capture en home lane (case privée, pas d'adversaire
+		# possible) ; une barrière peut désormais s'y former mais elle ne
+		# bloque jamais l'atterrissage, seulement le transit d'autres pions.
 		return result
 
 	# --- Atterrissage sur la ring lane ---
