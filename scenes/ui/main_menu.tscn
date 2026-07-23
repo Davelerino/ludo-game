@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cos8gqc5j4si2"]
 
 [ext_resource type="Script" uid="uid://gnkypy4agex1" path="res://ui/menu/main_menu.gd" id="1_menu"]
-[ext_resource type="Theme" path="res://resources/theme/game_theme.tres" id="2_theme"]
+[ext_resource type="Theme" uid="uid://dlv5u4x6k5w8g" path="res://resources/theme/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/hud/player_chip.tscn" id="3_chip"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_playercount"]
