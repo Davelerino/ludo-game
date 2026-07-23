@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://b45i4p6aq8gtp" path="res://scripts/core/pawn_controller.gd" id="7_pc"]
 [ext_resource type="Script" uid="uid://sjx8y1q31i7e" path="res://scripts/core/dice_system.gd" id="8_dice"]
 [ext_resource type="Resource" uid="uid://rbio3kc8gxrn" path="res://resources/BoardConfig.tres" id="9_cfg"]
+[ext_resource type="Script" path="res://scripts/core/board_flag_manager.gd" id="10_flags"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_85g3d"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -56,6 +57,9 @@ script = ExtResource("7_pc")
 
 [node name="DiceSystem" type="Node" parent="GameRoot" unique_id=1798746037]
 script = ExtResource("8_dice")
+
+[node name="BoardFlagManager" type="Node" parent="GameRoot"]
+script = ExtResource("10_flags")
 
 [node name="Marker3D" type="Marker3D" parent="." unique_id=901361531]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 1.5)

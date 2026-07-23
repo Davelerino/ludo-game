@@ -8,7 +8,8 @@ extends Node3D
 ##   ├─ CameraRig
 ##   ├─ AudioManager
 ##   ├─ UIManager (CanvasLayer : HUD debug (F1), PlayerHUD, FeedbackLayer)
-##   └─ GameRoot (TurnManager + DiceSystem + BoardManager + PawnController)
+##   └─ GameRoot (TurnManager + DiceSystem + BoardManager + PawnController +
+##      BoardFlagManager)
 ##
 ## Ce script INSTANCIE et BRANCHE les managers entre eux. TurnManager est
 ## déclaré en autoload (singleton) pour sa persistance ; mais on garde aussi
@@ -22,6 +23,7 @@ extends Node3D
 @onready var board_manager: BoardManager = $GameRoot/BoardManager
 @onready var pawn_controller: PawnController = $GameRoot/PawnController
 @onready var dice_system: DiceSystem = $GameRoot/DiceSystem
+@onready var board_flag_manager: BoardFlagManager = $GameRoot/BoardFlagManager
 
 
 func _ready() -> void:
@@ -44,6 +46,11 @@ func _ready() -> void:
 	pawn_controller.board_tuning = load("res://resources/BoardTuning.tres")
 	pawn_controller.setup(board_manager.all_pawns)
 
+	# 3bis. Branche le BoardFlagManager (icônes flottantes, ex. bouclier de
+	# barrière / badge de podium) — voir board_flag_manager.gd.
+	board_flag_manager.tuning = load("res://resources/BoardFlagTuning.tres")
+	board_flag_manager.setup(board_manager, board_root.get_node("Flags"))
+
 	# 4. Branche le TurnManager (autoload singleton) avec ses dépendances.
 	TurnManager.setup(dice_system, board_manager, pawn_controller)
 
@@ -56,6 +63,7 @@ func _ready() -> void:
 		for w in warnings:
 			push_warning("ScenarioSetup: %s" % w)
 		pawn_controller.setup(board_manager.all_pawns)  # ré-aligne les visuels (pas d'animation).
+		board_flag_manager.refresh_barrier_flags()  # apply_scenario() n'émet aucun GameEvents.
 		TurnManager.start_from_scenario(scenario.active_player)
 	else:
 		TurnManager.start_new_game()

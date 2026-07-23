@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BoardFlagTuning" format=3 uid="uid://1phudnsba1g8"]
+
+[ext_resource type="Script" uid="uid://b8vltawrpaeb5" path="res://resources/board_flag_tuning.gd" id="1_bft"]
+
+[resource]
+script = ExtResource("1_bft")
+font_size = 50
+outline_size = 2
+opacity = 0.745
+height_offset = 0.21

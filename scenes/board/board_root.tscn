@@ -188,6 +188,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.191455, 0, 2.5791454)
 [node name="Slot3" type="Marker3D" parent="Yards/Player3" unique_id=423028502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.589573, 0, 2.5895727)
 
+[node name="Flags" type="Node3D" parent="." unique_id=1532603032]
+
 [node name="CaptureZones" type="Node3D" parent="." unique_id=890517185]
 
 [node name="Player0" type="Node3D" parent="CaptureZones" unique_id=860680377]
