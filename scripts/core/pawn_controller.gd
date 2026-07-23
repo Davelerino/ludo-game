@@ -46,6 +46,15 @@ const RAY_LENGTH: float = 100.0
 @export var pawn_collision_radius: float = 0.08
 @export var pawn_collision_height: float = 0.23
 
+## Pulsation des pions jouables (retour visuel de sélection, voir
+## request_selection()) : multiplicateur d'échelle au pic, et durée d'une
+## MOITIÉ de cycle (aller OU retour — cycle complet ≈ 2x cette valeur).
+## Volontairement plus lent/doux que l'animation de lancer de dé
+## (die_button.gd, qui doit lire comme "énergique") : ceci doit rester une
+## invite discrète pendant que le joueur réfléchit à son choix.
+@export var pulse_scale_factor: float = 1.12
+@export var pulse_half_duration: float = 0.5
+
 # --- Noeuds 3D des pions, indexés par pawn.id ---
 # Chaque entrée est un StaticBody3D (mesh coloré + CollisionShape3D pour le
 # raycast de sélection) — voir _make_pawn_node().
@@ -64,6 +73,16 @@ var selected_pawn_id: int = -1
 ## Ids des pions actuellement cliquables (posé par request_selection(),
 ## consommé par _unhandled_input() via raycast).
 var _legal_ids: Array = []
+
+## Tween de pulsation en cours par pion offert (voir _start_pulse()) — vide
+## hors offre de sélection.
+var _pulse_tweens: Dictionary = {}  # pawn.id -> Tween
+
+## Échelle du mesh au moment où sa pulsation a démarré, capturée pour
+## restaurer l'échelle exacte à l'arrêt — JAMAIS Vector3.ONE en dur : un pion
+## empilé (_apply_stack_layout()) peut déjà avoir une échelle réduite
+## (voir BoardTuning.stack_scale_for()), que la pulsation ne doit pas écraser.
+var _pulse_base_scales: Dictionary = {}  # pawn.id -> Vector3
 
 ## Émis quand le joueur sélectionne un de ses pions cliquable. Le TurnManager
 ## écoute ce signal pour déclencher apply_move() via le RuleEngine.
@@ -130,6 +149,7 @@ func _find_mesh_instance(node: Node) -> MeshInstance3D:
 
 ## Détruit tous les noeuds de pions (nouvelle partie).
 func clear() -> void:
+	_stop_all_pulses()  # garde défensive : reset en cours de partie
 	for node in _pawn_nodes.values():
 		if is_instance_valid(node):
 			node.queue_free()
@@ -343,17 +363,60 @@ func _append_move_segment(tween: Tween, node: Node3D, to_pos: Vector3, duration:
 		.set_trans(trans).set_ease(ease_type)
 
 
+## Démarre la pulsation (échelle en aller-retour, en boucle) du pion
+## `pawn_id` — retour visuel indiquant qu'il est cliquable. Anime TOUJOURS
+## relativement à l'échelle actuelle du mesh (jamais Vector3.ONE en dur), qui
+## peut déjà être réduite par l'empilement (_apply_stack_layout()).
+func _start_pulse(pawn_id: int) -> void:
+	var mesh_node: Node3D = _pawn_mesh_nodes.get(pawn_id)
+	if mesh_node == null or not is_instance_valid(mesh_node):
+		return
+	var base_scale: Vector3 = mesh_node.scale
+	_pulse_base_scales[pawn_id] = base_scale
+	var tween: Tween = create_tween().set_loops()
+	tween.tween_property(mesh_node, "scale", base_scale * pulse_scale_factor, pulse_half_duration)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(mesh_node, "scale", base_scale, pulse_half_duration)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tweens[pawn_id] = tween
+
+
+## Arrête la pulsation de `pawn_id` et restaure son échelle de repos exacte
+## (celle capturée au démarrage, pas Vector3.ONE — voir _start_pulse()).
+func _stop_pulse(pawn_id: int) -> void:
+	var tween: Tween = _pulse_tweens.get(pawn_id)
+	if tween != null and tween.is_valid():
+		tween.kill()
+	_pulse_tweens.erase(pawn_id)
+	var mesh_node: Node3D = _pawn_mesh_nodes.get(pawn_id)
+	if mesh_node != null and is_instance_valid(mesh_node):
+		mesh_node.scale = _pulse_base_scales.get(pawn_id, Vector3.ONE)
+	_pulse_base_scales.erase(pawn_id)
+
+
+## Arrête toute pulsation en cours — appelé avant une nouvelle offre (le
+## joueur peut ré-armer un autre dé sans avoir cliqué de pion, voir
+## TurnManager.select_die()), à la sélection d'un pion, et au reset de partie.
+func _stop_all_pulses() -> void:
+	for pawn_id in _pulse_tweens.keys().duplicate():
+		_stop_pulse(pawn_id)
+
+
 ## Rend un ensemble de pions cliquables par le joueur actif (sélection souris,
 ## §11.6). `legal_ids` est la liste des ids autorisés par
 ## RuleEngine.get_legal_target_pawns() ; un clic sur tout autre pion est ignoré.
 func request_selection(player_id: int, legal_ids: Array) -> void:
+	_stop_all_pulses()
 	_legal_ids = legal_ids
+	for pawn_id in legal_ids:
+		_start_pulse(pawn_id)
 
 
 ## Marque un pion comme sélectionné et notifie le TurnManager.
 func select_pawn(pawn_id: int) -> void:
 	selected_pawn_id = pawn_id
 	_legal_ids.clear()
+	_stop_all_pulses()
 	var pawn: Dictionary = board_manager.get_pawn_by_id(pawn_id)
 	if not pawn.is_empty():
 		pawn_selected.emit(pawn)
