@@ -21,6 +21,7 @@ func _ready() -> void:
 	GameEvents.pawn_captured.connect(_on_capture)
 	GameEvents.barrier_formed.connect(_on_barrier)
 	GameEvents.victory.connect(_on_victory)
+	GameEvents.player_finished_ranked.connect(_on_player_finished_ranked)
 
 
 func _show(text: String, color: Color) -> void:
@@ -41,3 +42,15 @@ func _on_barrier(_p: Dictionary, _idx: int) -> void:
 
 func _on_victory(w: int) -> void:
 	_show("🏆 Joueur %d gagne !" % w, Color.GOLD)
+
+## La 1ère place est déjà annoncée par _on_victory() ci-dessus (même instant,
+## voir TurnManager._after_move_resolved()) — ne montrer ce toast que pour les
+## places suivantes (mode FULL_RANKING, GameSetup.WinMode).
+func _on_player_finished_ranked(player_id: int, place: int) -> void:
+	if place == 1:
+		return
+	_show("🎉 Joueur %d termine %s !" % [player_id, _ordinal(place)], Color.SILVER)
+
+
+func _ordinal(place: int) -> String:
+	return "%dème" % place

@@ -66,6 +66,18 @@ var pawn_controller: PawnController
 ## pour exclure le pion capturé de tout nouveau coup ce tour (L10).
 var locked_pawn_ids: Array = []
 
+## Sous-ensemble de board_manager.active_players qui rétrécit à mesure que
+## des joueurs terminent leurs 4 pions (§FULL_RANKING, voir GameSetup.WinMode) :
+## la rotation des tours (_next_remaining_player()) saute tout joueur qui n'y
+## est plus. En mode FIRST_WINNER la partie s'arrête avant que ça compte, mais
+## la structure reste commune aux deux modes.
+var _remaining_players: Array[int] = []
+
+## Ordre d'arrivée des joueurs ayant terminé leurs 4 pions (index 0 = 1ère
+## place). Alimenté par _after_move_resolved(), consommé pour construire le
+## classement final émis par GameEvents.game_over.
+var _finish_order: Array[int] = []
+
 ## Pool de dés en attente ce tour : Array de {"id": int, "value": int}.
 ## Construit lancer physique par lancer physique par _roll_once() — un double
 ## six ajoute ses 2 valeurs au pool et attend un clic joueur (état
@@ -133,6 +145,8 @@ func start_from_scenario(active_player_id: int = 0) -> void:
 
 func _start_turn_loop(starting_player: int) -> void:
 	active_player = starting_player
+	_remaining_players = board_manager.active_players.duplicate()
+	_finish_order.clear()
 	locked_pawn_ids.clear()
 	dice_pool.clear()
 	_selected_die_id = -1
@@ -430,12 +444,30 @@ func _on_move_animation_done(pawn: Dictionary, _dice_value: int) -> void:
 # État 6 : résolution post-coup (victoire ? encore des dés dans le pool ?)
 # ----------------------------------------------------------------------------
 func _after_move_resolved() -> void:
-	# 1. Victoire ? (§2.3, L12) — vérifié même avec des dés restants dans le pool.
-	var winner: int = RuleEngine.check_victory(board_manager.all_pawns, board_manager.active_players)
-	if winner != -1:
-		_change_state(TurnState.GAME_OVER)
-		GameEvents.victory.emit(winner)
-		return
+	# 1. Un joueur vient-il de terminer ses 4 pions ? (§2.3, L12) — vérifié
+	#    même avec des dés restants dans le pool. check_victory() ne regarde
+	#    que _remaining_players (joueurs pas encore classés), donc un joueur
+	#    déjà arrivé ne peut jamais redéclencher ce bloc.
+	var finisher: int = RuleEngine.check_victory(board_manager.all_pawns, _remaining_players)
+	if finisher != -1:
+		_finish_order.append(finisher)
+		_remaining_players.erase(finisher)
+		GameEvents.player_finished_ranked.emit(finisher, _finish_order.size())
+		if _finish_order.size() == 1:
+			# 1ère place décidée : signal historique conservé tel quel (SFX,
+			# toast, historique) — voir GameEvents.victory.
+			GameEvents.victory.emit(finisher)
+
+		var ranking_mode: bool = GameSetup.win_mode == GameSetup.WinMode.FULL_RANKING
+		if not ranking_mode or _remaining_players.size() <= 1:
+			var final_ranking: Array[int] = _finish_order.duplicate()
+			if ranking_mode and _remaining_players.size() == 1:
+				# Dernier joueur restant : classé automatiquement en dernière
+				# place, pas besoin qu'il finisse réellement ses pions.
+				final_ranking.append(_remaining_players[0])
+			_change_state(TurnState.GAME_OVER)
+			GameEvents.game_over.emit(final_ranking)
+			return
 
 	# 2. Reste-t-il au moins un dé ENCORE JOUABLE dans le pool ? Un dé qui
 	#    n'a pas de coup légal À CET INSTANT peut le redevenir après un autre
@@ -465,11 +497,27 @@ func _end_turn(reason: String) -> void:
 	_selected_die_id = -1
 	_roll_chain_count = 0  # le seuil de bust (§5.3) redémarre à 0 pour le joueur suivant
 
-	var active_idx: int = board_manager.active_players.find(active_player)
-	active_player = board_manager.active_players[(active_idx + 1) % board_manager.active_players.size()]
+	active_player = _next_remaining_player(active_player)
 
 	GameEvents.turn_ended.emit(previous, active_player)
 	_change_state(TurnState.WAITING_FOR_ROLL)
+
+
+## Prochain joueur ENCORE EN COURSE (§FULL_RANKING) après `from_player`, dans
+## l'ordre canonique board_manager.active_players — cherche l'index de
+## `from_player` dans CET ordre canonique (pas dans _remaining_players, qui
+## peut déjà avoir retiré `from_player` lui-même s'il vient tout juste de
+## terminer) puis avance jusqu'au premier candidat encore présent dans
+## _remaining_players. En mode FIRST_WINNER, ou tant que personne n'est
+## classé, _remaining_players == active_players : comportement inchangé.
+func _next_remaining_player(from_player: int) -> int:
+	var order: Array[int] = board_manager.active_players
+	var idx: int = order.find(from_player)
+	for step in range(1, order.size() + 1):
+		var candidate: int = order[(idx + step) % order.size()]
+		if candidate in _remaining_players:
+			return candidate
+	return from_player  # défensif : GAME_OVER est déjà géré avant qu'il ne reste plus personne
 
 
 # ----------------------------------------------------------------------------

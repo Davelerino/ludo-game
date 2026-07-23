@@ -6,6 +6,8 @@
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_playercount"]
 
+[sub_resource type="ButtonGroup" id="ButtonGroup_winmode"]
+
 [node name="MainMenu" type="Control" unique_id=1949304902]
 layout_mode = 3
 anchors_preset = 15
@@ -73,6 +75,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 toggle_mode = true
+button_pressed = true
 button_group = SubResource("ButtonGroup_playercount")
 text = "4 Joueurs"
 
@@ -96,6 +99,29 @@ player_id = 2
 [node name="Swatch3" parent="CenterContainer/VBoxContainer/SwatchRow" unique_id=532664229 instance=ExtResource("3_chip")]
 unique_name_in_owner = true
 player_id = 3
+
+[node name="WinModeRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=1085247761]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="FirstWinnerButton" type="Button" parent="CenterContainer/VBoxContainer/WinModeRow" unique_id=1085247762]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_winmode")
+text = "Premier arrivé"
+
+[node name="FullRankingButton" type="Button" parent="CenterContainer/VBoxContainer/WinModeRow" unique_id=1085247763]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_winmode")
+text = "Classement complet"
 
 [node name="ButtonSpacer" type="Control" parent="CenterContainer/VBoxContainer" unique_id=317927014]
 custom_minimum_size = Vector2(0, 24)

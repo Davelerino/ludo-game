@@ -70,5 +70,24 @@ signal pawns_offered(player_id: int, pawn_ids: Array, dice_value: int)
 signal turn_ended(previous_player: int, next_player: int)
 
 # --- Partie (§2.3, L12) ---
-## Émis dès qu'un joueur gagne. `winner_id` ∈ [0, PLAYER_COUNT-1].
+## Émis dès qu'un joueur gagne (1ère place). `winner_id` ∈ [0, PLAYER_COUNT-1].
+## Conservé tel quel pour ne pas casser les écouteurs existants (SFX, toast,
+## historique) : émis à l'instant où la 1ère place est décidée, dans les DEUX
+## modes de fin de partie (voir GameSetup.WinMode) — en mode FULL_RANKING la
+## partie continue ensuite, `game_over` ci-dessous signale la fin réelle.
 signal victory(winner_id: int)
+
+## Émis à chaque fois qu'un joueur termine ses 4 pions et sort de la rotation
+## (mode FULL_RANKING) — `place` = 1 pour le 1er, 2 pour le 2e, etc. Émis
+## aussi pour le tout premier joueur en mode FIRST_WINNER (place=1), juste
+## avant `victory`. Sert à afficher les classements intermédiaires (voir
+## FeedbackLayer._on_player_finished_ranked()).
+signal player_finished_ranked(player_id: int, place: int)
+
+## Émis quand la PARTIE est réellement terminée, quel que soit le mode.
+## `ranking` est le classement final ordonné (1er en premier). En mode
+## FIRST_WINNER, ne contient que le gagnant ([winner_id]) — les autres rangs
+## ne sont pas déterminés. En mode FULL_RANKING, contient TOUS les joueurs
+## actifs (le dernier restant est ajouté automatiquement en dernière place).
+## Écouté par VictoryScreen pour afficher l'écran de fin de partie.
+signal game_over(ranking: Array[int])

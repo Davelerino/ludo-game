@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://8gvlmoiapkg1" path="res://ui/hud/hud.gd" id="1_hud"]
 [ext_resource type="Script" uid="uid://pgbvbg5y87l2" path="res://ui/feedback/feedback_layer.gd" id="3_fb"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud/player_hud.tscn" id="4_player_hud"]
+[ext_resource type="Script" path="res://ui/victory/victory_screen.gd" id="5_victory"]
 
 [node name="UIManager" type="CanvasLayer" unique_id=730389000]
 
@@ -27,3 +28,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3_fb")
+
+[node name="VictoryScreen" type="Control" parent="." unique_id=1085247764]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_victory")
