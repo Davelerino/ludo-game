@@ -169,6 +169,10 @@ static func _empty_result(reason: String) -> Dictionary:
 		"finishes": false,
 		"new_progress": -1,
 		"new_state": PawnState.MAISON,
+		# Index (ring) de la case dont la barrière a causé un rejet, ou -1 si le
+		# rejet n'est pas lié à une barrière — voir board_flag_manager.gd, qui
+		# s'en sert pour faire clignoter le bouclier de la case concernée.
+		"blocking_ring_index": -1,
 	}
 
 ## Valide (sans muter l'état) le déplacement de `pawn` avec la valeur `dice_value`.
@@ -202,7 +206,9 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 
 		# B1/B2 : une barrière ennemie sur la start tile bloque l'entrée.
 		if barrier_owner != -1 and barrier_owner != pawn.player:
-			return _empty_result("start_tile_blocked_by_enemy_barrier")
+			var blocked: Dictionary = _empty_result("start_tile_blocked_by_enemy_barrier")
+			blocked.blocking_ring_index = start_index
+			return blocked
 
 		var occupants: Array = get_pawns_on_ring_index(start_index, all_pawns)
 		var result: Dictionary = _empty_result("")
@@ -242,10 +248,13 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 			var inter_ring_index: int = (offset + intermediate_progress) % BoardConfig.RING_SIZE
 			if is_barrier_at(inter_ring_index, all_pawns):
 				# B1/B2/B6 : aucune barrière (alliée ou ennemie) n'est traversable.
-				return _empty_result("path_blocked_by_barrier")
+				var blocked: Dictionary = _empty_result("path_blocked_by_barrier")
+				blocked.blocking_ring_index = inter_ring_index
+				return blocked
 		elif is_home_lane_barrier_at(pawn.player, intermediate_progress, all_pawns):
 			# Barrière (toujours alliée) sur une case de home lane traversée :
-			# bloque le transit exactement comme sur l'anneau.
+			# bloque le transit exactement comme sur l'anneau. Pas de ring_index
+			# pertinent ici (case de home lane, privée, hors de l'anneau public).
 			return _empty_result("path_blocked_by_barrier")
 
 	var result: Dictionary = _empty_result("")
@@ -281,7 +290,9 @@ static func try_move(pawn: Dictionary, dice_value: int, all_pawns: Array) -> Dic
 
 	if barrier_owner != -1 and barrier_owner != pawn.player:
 		# B2 : atterrissage interdit sur une barrière ennemie.
-		return _empty_result("landing_blocked_enemy_barrier")
+		var blocked: Dictionary = _empty_result("landing_blocked_enemy_barrier")
+		blocked.blocking_ring_index = landing_index
+		return blocked
 
 	result.new_progress = target_progress
 	result.new_state = PawnState.RING
@@ -564,19 +575,25 @@ static func _try_combined_yard_exit(pawn: Dictionary, value_a: int, value_b: int
 	# ennemie, n'est traversable"). Ne PAS se limiter à "barrière ennemie"
 	# (ce serait la règle d'ATTERRISSAGE, pas de transit).
 	if is_barrier_at(start_index, all_pawns):
-		return _empty_result("path_blocked_by_barrier")
+		var blocked_start: Dictionary = _empty_result("path_blocked_by_barrier")
+		blocked_start.blocking_ring_index = start_index
+		return blocked_start
 
 	# Transit (progress 1..continuation-1).
 	for intermediate_progress in range(1, continuation):
 		var inter_ring_index: int = (offset + intermediate_progress) % BoardConfig.RING_SIZE
 		if is_barrier_at(inter_ring_index, all_pawns):
-			return _empty_result("path_blocked_by_barrier")
+			var blocked_inter: Dictionary = _empty_result("path_blocked_by_barrier")
+			blocked_inter.blocking_ring_index = inter_ring_index
+			return blocked_inter
 
 	# Atterrissage final (identique à la logique d'atterrissage normale de Cas 2).
 	var landing_index: int = (offset + continuation) % BoardConfig.RING_SIZE
 	var barrier_owner: int = get_barrier_owner_at(landing_index, all_pawns)
 	if barrier_owner != -1 and barrier_owner != pawn.player:
-		return _empty_result("landing_blocked_enemy_barrier")
+		var blocked_landing: Dictionary = _empty_result("landing_blocked_enemy_barrier")
+		blocked_landing.blocking_ring_index = landing_index
+		return blocked_landing
 
 	var result: Dictionary = _empty_result("")
 	result.legal = true

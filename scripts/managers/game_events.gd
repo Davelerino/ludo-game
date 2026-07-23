@@ -40,6 +40,14 @@ signal turn_busted(player_id: int)
 ## `result` est le Dictionary retourné par RuleEngine.try_move().
 signal move_validated(pawn: Dictionary, dice_value: int, result: Dictionary)
 
+## Émis quand le joueur clique un pion dont AUCUN coup n'est légal avec le
+## dé/pool courant, ET que ce rejet est identifiable à une case précise (ex.
+## barrière) — `reason` reprend un des codes de RuleEngine._empty_result(),
+## `ring_index` la case en cause (-1 si non applicable). Voir
+## PawnController.pawn_click_rejected (source du déclenchement) et
+## BoardFlagManager (qui s'en sert pour faire clignoter un flag existant).
+signal move_blocked(pawn: Dictionary, reason: String, ring_index: int)
+
 # --- Pion (après application) ---
 ## Émis APRÈS qu'un pion ait effectivement bougé (état + progress mis à jour).
 signal pawn_moved(pawn: Dictionary, dice_value: int)

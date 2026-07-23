@@ -88,6 +88,13 @@ var _pulse_base_scales: Dictionary = {}  # pawn.id -> Vector3
 ## écoute ce signal pour déclencher apply_move() via le RuleEngine.
 signal pawn_selected(pawn: Dictionary)
 
+## Émis quand le joueur clique un pion qui N'EST PAS dans _legal_ids alors
+## qu'une offre de sélection est active (_legal_ids non vide) — le clic est
+## réel mais ne peut aboutir. Le TurnManager écoute ce signal pour déterminer
+## POURQUOI (rejoue RuleEngine.try_move()) et émettre GameEvents.move_blocked,
+## voir board_flag_manager.gd (clignotement du bouclier de barrière).
+signal pawn_click_rejected(pawn_id: int)
+
 
 ## Instancie un noeud 3D (mesh coloré + collider de sélection) par pion et le
 ## place sur son yard.
@@ -429,9 +436,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _legal_ids.is_empty():
 		return
 	var pawn_id: int = _raycast_pawn_id()
-	if pawn_id == -1 or not (pawn_id in _legal_ids):
+	if pawn_id == -1:
 		return
-	select_pawn(pawn_id)
+	if pawn_id in _legal_ids:
+		select_pawn(pawn_id)
+		return
+	pawn_click_rejected.emit(pawn_id)
 
 
 ## Lance un rayon caméra -> souris et renvoie l'id (méta "pawn_id") du premier

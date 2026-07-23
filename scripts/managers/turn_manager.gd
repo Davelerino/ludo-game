@@ -124,6 +124,7 @@ func setup(p_dice: DiceSystem, p_board: BoardManager, p_pawns: PawnController) -
 	pawn_controller = p_pawns
 	if pawn_controller:
 		pawn_controller.pawn_selected.connect(_on_pawn_selected)
+		pawn_controller.pawn_click_rejected.connect(_on_pawn_click_rejected)
 	_change_state(TurnState.WAITING_FOR_ROLL)
 
 
@@ -273,6 +274,23 @@ func _on_pawn_selected(pawn: Dictionary) -> void:
 	var die_id: int = _selected_die_id
 	_selected_die_id = -1
 	_resolve_die_pawn_choice(die_id, pawn)
+
+
+## Le joueur a cliqué un pion offert par PawnController mais qui n'a en fait
+## AUCUN coup légal (offre potentiellement obsolète, ou clic pendant une
+## fenêtre de sélection déjà refermée) — rejoue try_move() pour chaque dé du
+## pool afin de retrouver la raison exacte du rejet et, le cas échéant, la
+## case en cause (blocking_ring_index), pour GameEvents.move_blocked (voir
+## board_flag_manager.gd, qui fait clignoter le bouclier de barrière).
+func _on_pawn_click_rejected(pawn_id: int) -> void:
+	var pawn: Dictionary = board_manager.get_pawn_by_id(pawn_id)
+	if pawn.is_empty():
+		return
+	for entry in dice_pool:
+		var preview: Dictionary = RuleEngine.try_move(pawn, entry.value, board_manager.all_pawns)
+		if not preview.legal and preview.blocking_ring_index != -1:
+			GameEvents.move_blocked.emit(pawn, preview.reason, preview.blocking_ring_index)
+			return
 
 
 ## Coeur du filet de sécurité anti-gâchis (§8 révisé, voir rule_engine.gd) :
