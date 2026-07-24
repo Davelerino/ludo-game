@@ -134,6 +134,12 @@ layout_mode = 2
 theme_type_variation = &"RollButton"
 text = "Jouer"
 
+[node name="LoadGameButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1266178715]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+text = "Charger une partie"
+
 [node name="ScenarioButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1884314761]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 48)

@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/history_panel.tscn" id="8_history"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_menu.tscn" id="9_settings"]
 [ext_resource type="PackedScene" path="res://scenes/ui/quit/quit_confirm_dialog.tscn" id="10_quit_confirm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/save/save_game_dialog.tscn" id="11_save_dialog"]
 
 [node name="PlayerHUD" type="Control" unique_id=726999477]
 layout_mode = 3
@@ -80,6 +81,14 @@ layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"BackButton"
 text = "⚙"
+
+[node name="SaveButton" type="Button" parent="TopBar/TopBarMargin/TopBarRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BackButton"
+text = "💾"
 
 [node name="HSpacer" type="Control" parent="TopBar/TopBarMargin/TopBarRow" unique_id=1218988486]
 layout_mode = 2
@@ -215,5 +224,9 @@ unique_name_in_owner = true
 layout_mode = 1
 
 [node name="QuitConfirmDialog" parent="." instance=ExtResource("10_quit_confirm")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="SaveGameDialog" parent="." instance=ExtResource("11_save_dialog")]
 unique_name_in_owner = true
 layout_mode = 1

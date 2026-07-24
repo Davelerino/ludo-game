@@ -99,3 +99,8 @@ signal player_finished_ranked(player_id: int, place: int)
 ## actifs (le dernier restant est ajouté automatiquement en dernière place).
 ## Écouté par VictoryScreen pour afficher l'écran de fin de partie.
 signal game_over(ranking: Array[int])
+
+# --- Sauvegarde (SaveManager) ---
+## Émis quand SaveManager.save_game() réussit — écouté par FeedbackLayer pour
+## un toast de confirmation (voir ui/save/save_game_dialog.gd, déclencheur).
+signal game_saved(save_name: String)

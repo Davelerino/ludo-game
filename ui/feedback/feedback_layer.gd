@@ -22,6 +22,7 @@ func _ready() -> void:
 	GameEvents.barrier_formed.connect(_on_barrier)
 	GameEvents.victory.connect(_on_victory)
 	GameEvents.player_finished_ranked.connect(_on_player_finished_ranked)
+	GameEvents.game_saved.connect(_on_game_saved)
 
 
 func _show(text: String, color: Color) -> void:
@@ -54,3 +55,6 @@ func _on_player_finished_ranked(player_id: int, place: int) -> void:
 
 func _ordinal(place: int) -> String:
 	return "%dème" % place
+
+func _on_game_saved(save_name: String) -> void:
+	_show("💾 Partie sauvegardée : %s" % save_name, Color.SKY_BLUE)

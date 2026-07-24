@@ -144,6 +144,30 @@ func start_from_scenario(active_player_id: int = 0) -> void:
 	_start_turn_loop(active_player_id)
 
 
+## Reprend une partie sauvegardée (voir SaveManager + main.gd) : ne touche PAS
+## board_manager.all_pawns (déjà repeuplé via BoardManager.apply_scenario()),
+## seulement la mécanique de tour — comme start_from_scenario(), mais restaure
+## en plus le classement en cours (mode Classement complet, voir GameSetup.
+## WinMode.FULL_RANKING) au lieu de repartir d'une rotation neuve. La
+## sauvegarde n'ayant lieu qu'en TurnState.WAITING_FOR_ROLL (voir
+## get_ranking_snapshot() + ui/hud/player_hud.gd), dice_pool/locked_pawn_ids
+## n'ont rien à restaurer : _start_turn_loop() les laisse déjà vides.
+func start_from_save(active_player_id: int, remaining_players: Array[int], finish_order: Array[int]) -> void:
+	_start_turn_loop(active_player_id)
+	_remaining_players = remaining_players.duplicate()
+	_finish_order = finish_order.duplicate()
+
+
+## Snapshot du classement en cours, à inclure dans une sauvegarde (voir
+## SaveManager.save_game() + ui/save/save_game_dialog.gd). Copies superficielles
+## pour ne jamais laisser l'appelant muter l'état interne du TurnManager.
+func get_ranking_snapshot() -> Dictionary:
+	return {
+		"remaining_players": _remaining_players.duplicate(),
+		"finish_order": _finish_order.duplicate(),
+	}
+
+
 func _start_turn_loop(starting_player: int) -> void:
 	active_player = starting_player
 	_remaining_players = board_manager.active_players.duplicate()

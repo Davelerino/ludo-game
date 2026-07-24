@@ -9,7 +9,7 @@
 [ext_resource type="StyleBox" path="res://resources/theme/style_die_pip.tres" id="7b_die_pip"]
 [ext_resource type="StyleBox" path="res://resources/theme/style_avatar_circle.tres" id="7c_avatar"]
 [ext_resource type="StyleBox" path="res://resources/theme/style_die_selected.tres" id="7_die_selected"]
-[ext_resource type="StyleBox" path="res://resources/theme/style_roll_button_normal.tres" id="8_roll_normal"]
+[ext_resource type="StyleBox" uid="uid://dm4bi0y81wc5q" path="res://resources/theme/style_roll_button_normal.tres" id="8_roll_normal"]
 [ext_resource type="StyleBox" path="res://resources/theme/style_roll_button_disabled.tres" id="9_roll_disabled"]
 [ext_resource type="FontVariation" path="res://resources/theme/font_fredoka_600.tres" id="10_fredoka_600"]
 [ext_resource type="FontVariation" path="res://resources/theme/font_nunito_600.tres" id="11_nunito_600"]
@@ -17,6 +17,20 @@
 [ext_resource type="FontVariation" path="res://resources/theme/font_nunito_800.tres" id="13_nunito_800"]
 [ext_resource type="StyleBox" path="res://resources/theme/style_history_panel_bg.tres" id="14_history_bg"]
 [ext_resource type="StyleBox" path="res://resources/theme/style_history_entry_row.tres" id="15_history_row"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c4d4c"]
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+bg_color = Color(0.14406255, 0.14406255, 0.14406249, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0.35, 0.35, 0.35, 1)
+shadow_size = 3
+shadow_offset = Vector2(0, 3)
 
 [resource]
 BackButton/base_type = &"Button"
@@ -69,11 +83,12 @@ PlayerAvatar/styles/panel = ExtResource("7c_avatar")
 PlayerChipActive/base_type = &"Panel"
 PlayerChipActive/styles/panel = ExtResource("2_chip_active")
 RollButton/base_type = &"Button"
-RollButton/colors/font_color = Color(1, 1, 1, 1)
+RollButton/colors/font_color = Color(0.10747976, 0.10747973, 0.10747973, 1)
 RollButton/colors/font_disabled_color = Color(1, 1, 1, 0.8)
+RollButton/colors/font_hover_color = Color(0.8819366, 0.8819366, 0.88193655, 1)
 RollButton/font_sizes/font_size = 15
 RollButton/fonts/font = ExtResource("10_fredoka_600")
 RollButton/styles/disabled = ExtResource("9_roll_disabled")
-RollButton/styles/hover = ExtResource("8_roll_normal")
+RollButton/styles/hover = SubResource("StyleBoxFlat_c4d4c")
 RollButton/styles/normal = ExtResource("8_roll_normal")
 RollButton/styles/pressed = ExtResource("8_roll_normal")

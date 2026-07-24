@@ -14,6 +14,7 @@ extends Control
 
 const GAME_SCENE := "res://scenes/main.tscn"
 const SCENARIO_SCENE := "res://scenes/scenario/scenario_setup.tscn"
+const LOAD_GAME_SCENE := "res://scenes/ui/load/load_game_screen.tscn"
 
 @onready var _count2_button: Button = %Count2Button
 @onready var _count3_button: Button = %Count3Button
@@ -22,6 +23,7 @@ const SCENARIO_SCENE := "res://scenes/scenario/scenario_setup.tscn"
 @onready var _first_winner_button: Button = %FirstWinnerButton
 @onready var _full_ranking_button: Button = %FullRankingButton
 @onready var _play_button: Button = %PlayButton
+@onready var _load_game_button: Button = %LoadGameButton
 @onready var _scenario_button: Button = %ScenarioButton
 @onready var _quit_button: Button = %QuitButton
 
@@ -33,10 +35,12 @@ func _ready() -> void:
 	_first_winner_button.pressed.connect(_on_win_mode_selected.bind(GameSetup.WinMode.FIRST_WINNER))
 	_full_ranking_button.pressed.connect(_on_win_mode_selected.bind(GameSetup.WinMode.FULL_RANKING))
 	_play_button.pressed.connect(_on_play_pressed)
+	_load_game_button.pressed.connect(_on_load_game_pressed)
 	_scenario_button.pressed.connect(_on_scenario_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_on_count_selected(GameSetup.player_count)
 	_on_win_mode_selected(GameSetup.win_mode)
+	_load_game_button.disabled = SaveManager.list_saves().is_empty()
 
 
 func _on_count_selected(count: int) -> void:
@@ -55,6 +59,10 @@ func _refresh_swatches(active_players: Array[int]) -> void:
 
 func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file(GAME_SCENE)
+
+
+func _on_load_game_pressed() -> void:
+	get_tree().change_scene_to_file(LOAD_GAME_SCENE)
 
 
 func _on_scenario_pressed() -> void:

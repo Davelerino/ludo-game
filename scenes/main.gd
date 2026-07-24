@@ -27,6 +27,17 @@ extends Node3D
 
 
 func _ready() -> void:
+	# 0. Sauvegarde en attente (voir SaveManager + ui/load/load_game_screen.gd) :
+	#    consommée une seule fois ici, AVANT board_manager.setup() ci-dessous,
+	#    car GameSetup.player_count/win_mode doivent être restaurés avant que
+	#    GameSetup.get_active_players() ne soit lu (sinon les sièges actifs ne
+	#    correspondraient pas à ceux de la sauvegarde).
+	var pending_save: Dictionary = {}
+	if SaveManager.has_pending_load():
+		pending_save = SaveManager.consume_pending_load()
+		GameSetup.player_count = pending_save.player_count
+		GameSetup.win_mode = pending_save.win_mode as GameSetup.WinMode
+
 	# 1. Initialise le BoardManager (état des pions + dépendances).
 	#    NOTE : le plateau n'est PAS généré ici — il est cuit dans board_root.tscn
 	#    par le plugin "Ludo Board Tools" (Tools > Generate Ludo Board → Ctrl+S).
@@ -54,9 +65,16 @@ func _ready() -> void:
 	# 4. Branche le TurnManager (autoload singleton) avec ses dépendances.
 	TurnManager.setup(dice_system, board_manager, pawn_controller)
 
-	# 5. Démarre la partie : depuis zéro, ou depuis un scénario configuré
-	#    manuellement via ui/scenario/scenario_setup.gd (mode test).
-	if ScenarioState.has_pending():
+	# 5. Démarre la partie : depuis une sauvegarde, depuis un scénario configuré
+	#    manuellement via ui/scenario/scenario_setup.gd (mode test), ou depuis zéro.
+	if not pending_save.is_empty():
+		var warnings: Array[String] = board_manager.apply_scenario(pending_save.pawns)
+		for w in warnings:
+			push_warning("SaveManager: %s" % w)
+		pawn_controller.setup(board_manager.all_pawns)  # ré-aligne les visuels (pas d'animation).
+		board_flag_manager.refresh_barrier_flags()  # apply_scenario() n'émet aucun GameEvents.
+		TurnManager.start_from_save(pending_save.active_player, pending_save.remaining_players, pending_save.finish_order)
+	elif ScenarioState.has_pending():
 		var scenario: Dictionary = ScenarioState.consume()
 		var warnings: Array[String] = board_manager.apply_scenario(scenario.pawn_entries)
 		warnings.append_array(RuleEngine.validate_scenario(board_manager.all_pawns))
@@ -83,3 +101,8 @@ func _ready() -> void:
 		hud.board_manager = board_manager
 		hud.dice_system = dice_system
 		hud.refresh()
+
+	# 8. L'état affiché correspond exactement à ce qui est sur le disque (ou à
+	#    une partie neuve, rien à perdre) dans les 3 branches de l'étape 5 —
+	#    voir SaveManager.is_dirty()/QuitConfirmDialog.
+	SaveManager.mark_clean()

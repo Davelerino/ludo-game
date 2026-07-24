@@ -18,8 +18,10 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 @onready var _back_button: Button = %BackButton
 @onready var _history_toggle_button: Button = %HistoryToggleButton
 @onready var _settings_button: Button = %SettingsButton
+@onready var _save_button: Button = %SaveButton
 @onready var _settings_menu: SettingsMenu = %SettingsMenu
 @onready var _quit_confirm_dialog: QuitConfirmDialog = %QuitConfirmDialog
+@onready var _save_game_dialog: SaveGameDialog = %SaveGameDialog
 @onready var _chip0: PlayerChip = %PlayerChip0
 @onready var _chip1: PlayerChip = %PlayerChip1
 @onready var _chip2: PlayerChip = %PlayerChip2
@@ -42,6 +44,12 @@ var _selected_die_value: int = -1
 var _any_die_used_this_turn: bool = false
 var _max_pool_size_this_turn: int = 0
 
+## true entre l'ouverture de SaveGameDialog depuis QuitConfirmDialog
+## ("Sauvegarder et quitter") et sa fermeture — distingue ce flux de
+## %SaveButton (sauvegarde simple, sans navigation ensuite). Voir
+## _on_quit_save_requested()/_on_save_game_dialog_saved().
+var _quit_after_save: bool = false
+
 
 func _ready() -> void:
 	# player_id (0=Bleu..3=Jaune) est déjà fixé par instance dans le .tscn
@@ -50,7 +58,11 @@ func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	_history_toggle_button.pressed.connect(_on_history_toggle_pressed)
 	_settings_button.pressed.connect(_on_settings_toggle_pressed)
+	_save_button.pressed.connect(_on_save_pressed)
 	_quit_confirm_dialog.confirmed.connect(_on_quit_confirmed)
+	_quit_confirm_dialog.save_requested.connect(_on_quit_save_requested)
+	_save_game_dialog.saved.connect(_on_save_game_dialog_saved)
+	_save_game_dialog.cancelled.connect(_on_save_game_dialog_cancelled)
 
 
 ## Touche H (action "toggle_history_panel") : même effet que le bouton
@@ -74,6 +86,18 @@ func _on_settings_toggle_pressed() -> void:
 	_settings_menu.visible = not _settings_menu.visible
 
 
+## %SaveButton n'est activé qu'en TurnState.WAITING_FOR_ROLL (voir
+## _refresh_save_button_enabled()) : le dialogue peut donc toujours supposer
+## dice_pool/locked_pawn_ids vides côté TurnManager (voir SaveManager).
+func _on_save_pressed() -> void:
+	_open_save_dialog()
+
+
+func _open_save_dialog() -> void:
+	var snapshot: Dictionary = turn_manager.get_ranking_snapshot()
+	_save_game_dialog.open(turn_manager.active_player, snapshot.remaining_players, snapshot.finish_order, board_manager.all_pawns)
+
+
 func setup(p_turn_manager: TurnManager, p_board_manager: BoardManager) -> void:
 	turn_manager = p_turn_manager
 	board_manager = p_board_manager
@@ -91,14 +115,31 @@ func setup(p_turn_manager: TurnManager, p_board_manager: BoardManager) -> void:
 	_refresh_active_player(p_turn_manager.active_player)
 	_refresh_all_scores()
 	_refresh_helper_text()
+	_refresh_save_button_enabled()
 
 
 func _on_back_pressed() -> void:
-	_quit_confirm_dialog.open()
+	var can_offer_save: bool = SaveManager.is_dirty() and turn_manager.state == TurnManager.TurnState.WAITING_FOR_ROLL
+	_quit_confirm_dialog.open(can_offer_save)
 
 
 func _on_quit_confirmed() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE)
+
+
+func _on_quit_save_requested() -> void:
+	_quit_after_save = true
+	_open_save_dialog()
+
+
+func _on_save_game_dialog_saved() -> void:
+	if _quit_after_save:
+		_quit_after_save = false
+		get_tree().change_scene_to_file(MENU_SCENE)
+
+
+func _on_save_game_dialog_cancelled() -> void:
+	_quit_after_save = false
 
 
 func _refresh_active_player(player_id: int) -> void:
@@ -124,6 +165,14 @@ func _on_turn_state_changed(_old: int, new_state: int) -> void:
 	if new_state == TurnManager.TurnState.WAITING_FOR_ROLL:
 		_reset_turn_bookkeeping()
 	_refresh_helper_text()
+	_refresh_save_button_enabled()
+
+
+## Sauvegarde possible seulement en tout début de tour (voir SaveManager) :
+## dice_pool/locked_pawn_ids sont alors garantis vides côté TurnManager, donc
+## une sauvegarde n'a jamais à en tenir compte.
+func _refresh_save_button_enabled() -> void:
+	_save_button.disabled = turn_manager.state != TurnManager.TurnState.WAITING_FOR_ROLL
 
 
 func _reset_turn_bookkeeping() -> void:

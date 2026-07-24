@@ -23,6 +23,7 @@ TurnManager="*res://scripts/managers/turn_manager.gd"
 ScenarioState="*res://scripts/managers/scenario_state.gd"
 GameSetup="*res://scripts/managers/game_setup.gd"
 SettingsManager="*res://scripts/managers/settings_manager.gd"
+SaveManager="*res://scripts/managers/save_manager.gd"
 
 [display]
 

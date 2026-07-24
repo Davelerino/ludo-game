@@ -8,14 +8,22 @@ extends Control
 ## Même principe que SettingsMenu/VictoryScreen : overlay plein-écran
 ## instancié comme enfant de player_hud.tscn, montré/caché via `visible`,
 ## construit entièrement en code. N'effectue PAS la navigation elle-même —
-## elle émet `confirmed`/`cancelled` et laisse PlayerHUD décider (c'est lui
-## qui connaît MENU_SCENE).
+## elle émet `confirmed`/`cancelled`/`save_requested` et laisse PlayerHUD
+## décider (c'est lui qui connaît MENU_SCENE et sait ouvrir SaveGameDialog).
+##
+## `open(can_offer_save)` : quand PlayerHUD détecte une partie non sauvegardée
+## (voir SaveManager.is_dirty()) ET qu'il est possible de sauvegarder à cet
+## instant (TurnState.WAITING_FOR_ROLL, même condition que %SaveButton), un
+## 3e bouton "Sauvegarder et quitter" apparaît. Sinon, comportement inchangé
+## (2 boutons "Annuler"/"Quitter").
 ## ============================================================================
 
 signal confirmed
 signal cancelled
+signal save_requested
 
 var _quit_button: Button
+var _save_and_quit_button: Button
 
 
 func _ready() -> void:
@@ -45,7 +53,7 @@ func _build() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(360, 0)
+	panel.custom_minimum_size = Vector2(460, 0)
 	center.add_child(panel)
 
 	var vbox := VBoxContainer.new()
@@ -81,9 +89,19 @@ func _build() -> void:
 	_quit_button.pressed.connect(_on_quit_pressed)
 	button_row.add_child(_quit_button)
 
+	_save_and_quit_button = Button.new()
+	_save_and_quit_button.text = "Sauvegarder et quitter"
+	_save_and_quit_button.custom_minimum_size = Vector2(180, 44)
+	_save_and_quit_button.visible = false
+	_save_and_quit_button.pressed.connect(_on_save_and_quit_pressed)
+	button_row.add_child(_save_and_quit_button)
+
 
 ## Point d'entrée public : ouvre le dialogue (appelé par PlayerHUD).
-func open() -> void:
+## `can_offer_save` : voir doc de classe ci-dessus.
+func open(can_offer_save: bool = false) -> void:
+	_save_and_quit_button.visible = can_offer_save
+	_quit_button.text = "Quitter sans sauvegarder" if can_offer_save else "Quitter"
 	visible = true
 
 
@@ -95,3 +113,8 @@ func _on_cancel_pressed() -> void:
 func _on_quit_pressed() -> void:
 	visible = false
 	confirmed.emit()
+
+
+func _on_save_and_quit_pressed() -> void:
+	visible = false
+	save_requested.emit()
